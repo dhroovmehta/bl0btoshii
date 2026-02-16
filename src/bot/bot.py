@@ -190,11 +190,15 @@ async def quality_command(ctx):
 
 # --- Scheduled Tasks ---
 
-@tasks.loop(hours=24)
+from src.bot.scheduler import DAILY_TRIGGER_TIME, WEEKLY_REPORT_TIME
+
+
+@tasks.loop(time=DAILY_TRIGGER_TIME)
 async def daily_pipeline_trigger():
-    """Run the daily pipeline at the configured time."""
+    """Run the daily pipeline at 9:15 AM ET."""
     from src.pipeline.orchestrator import run_daily_pipeline
     try:
+        print(f"[Scheduler] Daily pipeline trigger fired at {DAILY_TRIGGER_TIME}")
         await run_daily_pipeline(bot)
     except Exception as e:
         print(f"[Scheduler] Daily pipeline error: {e}")
@@ -208,11 +212,15 @@ async def before_daily_pipeline():
     await bot.wait_until_ready()
 
 
-@tasks.loop(hours=168)  # Weekly (7 days)
+@tasks.loop(time=WEEKLY_REPORT_TIME)
 async def weekly_analytics_trigger():
-    """Run weekly analytics report."""
+    """Run weekly analytics report — Monday only at 9:00 AM ET."""
+    from src.bot.scheduler import is_weekly_report_day
+    if not is_weekly_report_day():
+        return  # Not Monday — skip
     from src.pipeline.orchestrator import run_weekly_analytics
     try:
+        print(f"[Scheduler] Weekly analytics trigger fired at {WEEKLY_REPORT_TIME}")
         await run_weekly_analytics(bot)
     except Exception as e:
         print(f"[Scheduler] Weekly analytics error: {e}")

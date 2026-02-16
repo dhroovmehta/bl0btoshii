@@ -1,13 +1,17 @@
 # Posting schedule rules
 scheduling:
-  # Stagger posts across platforms (minutes apart)
-  stagger_minutes: 30
+  # Daily idea generation (ET) — posts ideas to #idea-selection
+  daily_idea_generation:
+    time: "09:15"
 
   # Optimal posting times (ET) — auto-adjusted by analytics over time
   optimal_times:
     tiktok: "10:00"
     youtube: "10:30"
     instagram: "11:00"
+
+  # Stagger posts across platforms (minutes apart)
+  stagger_minutes: 30
 
   # Weekly analytics report
   weekly_report:

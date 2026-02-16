@@ -224,7 +224,7 @@ MOOTOSHI SERVER
 #### #idea-selection
 
 ```
-DAILY TRIGGER: Pipeline cron job (configurable time, e.g., 8:00 AM ET)
+DAILY TRIGGER: Automated at 9:15 AM ET (src/bot/scheduler.py)
 
 BOT POSTS:
 "🎬 **Daily Episode Ideas — [Date]**
@@ -604,6 +604,7 @@ mootoshi/
 │   │   ├── __init__.py
 │   │   ├── bot.py                   # Main Discord bot
 │   │   ├── alerts.py                # Centralized error alerting to #errors channel
+│   │   ├── scheduler.py             # Scheduled trigger times (daily 9:15 AM, weekly Mon 9:00 AM)
 │   │   ├── handlers/
 │   │   │   ├── idea_selection.py    # #idea-selection channel handler
 │   │   │   ├── script_review.py     # #script-review channel handler
@@ -1798,7 +1799,7 @@ Report contents:
 
 ### 19.1 Daily Trigger
 
-The pipeline runs daily on a cron schedule (configurable, e.g., 8:00 AM ET):
+The pipeline runs daily at **9:15 AM ET** (configured in `src/bot/scheduler.py`). Weekly analytics runs **Monday at 9:00 AM ET**. Both use discord.py's `tasks.loop(time=...)` with timezone-aware times. The `!generate` and `!report` commands allow manual triggering at any time.
 
 1. **Trend Check** — Scan for trending topics and seasonal themes
 2. **Continuity Check** — Load timeline, running gags, character growth
