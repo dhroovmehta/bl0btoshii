@@ -1,0 +1,20 @@
+[Unit]
+Description=Mootoshi Discord Bot & Pipeline
+After=network.target
+
+[Service]
+Type=simple
+User=mootoshi
+WorkingDirectory=/opt/mootoshi
+ExecStart=/opt/mootoshi/venv/bin/python -m src.bot.bot
+Restart=always
+RestartSec=10
+EnvironmentFile=/opt/mootoshi/.env
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=mootoshi
+
+[Install]
+WantedBy=multi-user.target

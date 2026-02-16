@@ -10,7 +10,7 @@ platforms:
     aspect_ratio: "9:16"
 
   youtube:
-    enabled: false
+    enabled: true
     max_title_length: 100
     max_description_length: 5000
     max_tags: 30

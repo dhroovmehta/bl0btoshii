@@ -166,6 +166,7 @@ async def _generate_metadata_and_schedule(bot, video_preview_channel):
     from src.metadata.generator import generate_metadata, safety_check
     from src.publisher.scheduler import get_next_posting_slots, format_schedule_message
     from src.publisher.platforms import publish_to_all
+    from src.publisher.drive import upload_to_drive, format_drive_filename, format_publishing_alert
     from src.continuity.engine import log_episode
     from src.pipeline.orchestrator import log_episode_to_index
     from src.bot.bot import CHANNEL_IDS
@@ -220,6 +221,40 @@ async def _generate_metadata_and_schedule(bot, video_preview_channel):
         selected_idx = state.get("selected_video_index", 0)
         variants = state.get("video_variants", [])
         video_path = variants[selected_idx]["video_path"] if variants else None
+
+        # Upload selected video to Google Drive
+        if video_path:
+            episode_id = state.get("current_episode", "?")
+            episode_title = script.get("metadata", {}).get("title", "Untitled")
+
+            # Get episode number from index
+            episode_num = 1
+            try:
+                import json
+                index_path = os.path.join(
+                    os.path.dirname(__file__), "..", "..", "..", "data", "episodes", "index.json"
+                )
+                if os.path.exists(index_path):
+                    with open(index_path, "r") as f:
+                        index = json.load(f)
+                    episode_num = index.get("next_episode_number", 1)
+            except Exception:
+                pass
+
+            drive_filename = format_drive_filename(episode_num, episode_title)
+            drive_result = await loop.run_in_executor(
+                None, upload_to_drive, video_path, drive_filename
+            )
+
+            if drive_result["success"]:
+                alert_msg = format_publishing_alert(
+                    drive_filename, drive_result["file_url"], metadata
+                )
+                await pub_channel.send(alert_msg)
+            else:
+                await pub_channel.send(
+                    f"**Google Drive upload failed:** {drive_result['error']}"
+                )
 
         publish_results = {}
         if video_path and is_safe:

@@ -253,16 +253,16 @@ Before you can create credentials, you must configure what users see when they a
 1. In the left sidebar, go to **"APIs & Services"** > **"Credentials"**
 2. Click **"+ Create Credentials"** at the top
 3. Select **"OAuth client ID"**
-4. For **Application type**, select **"Desktop app"** (since the pipeline runs on your computer)
+4. For **Application type**, select **"Web application"** (required for the OAuth Playground in the next step)
 5. **Name**: e.g., "Mootoshi Pipeline"
-6. Click **"Create"**
-7. A popup appears showing:
+6. **Authorized JavaScript origins** — leave this section empty (do not add anything)
+7. **Authorized redirect URIs** — click **"+ Add URI"** and enter:
+   `https://developers.google.com/oauthplayground`
+8. Click **"Create"**
+9. A popup appears showing:
    - **Client ID** — a long string ending in `.apps.googleusercontent.com`
    - **Client Secret** — another string
-8. Click **"Download JSON"** — this saves a `client_secret_XXXX.json` file
-9. Also copy the Client ID and Client Secret — you'll need these for your `.env` file
-
-> **Keep the downloaded JSON file safe** — you'll need it to get your refresh token in the next step.
+10. Copy the Client ID and Client Secret — you'll need these for your `.env` file
 
 ### 4F. Get Your Refresh Token
 
