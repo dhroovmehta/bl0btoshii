@@ -1,0 +1,15 @@
+# Posting schedule rules
+scheduling:
+  # Stagger posts across platforms (minutes apart)
+  stagger_minutes: 30
+
+  # Optimal posting times (ET) — auto-adjusted by analytics over time
+  optimal_times:
+    tiktok: "10:00"
+    youtube: "10:30"
+    instagram: "11:00"
+
+  # Weekly analytics report
+  weekly_report:
+    day: "monday"
+    time: "09:00"

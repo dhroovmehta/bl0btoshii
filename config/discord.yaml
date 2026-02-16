@@ -1,0 +1,38 @@
+# Discord server and channel configuration
+# Actual IDs are in .env — this file defines channel purposes and behavior
+discord:
+  server_name: Mootoshi
+
+  channels:
+    idea_selection:
+      env_var: DISCORD_CHANNEL_IDEA_SELECTION
+      purpose: "Daily episode idea posting and selection"
+      bot_posts: true
+      expects_reply: true
+      valid_replies: ["1", "2", "3", "option 1", "option 2", "option 3", "the first one", "the second one", "the third one"]
+
+    script_review:
+      env_var: DISCORD_CHANNEL_SCRIPT_REVIEW
+      purpose: "Script review and approval"
+      bot_posts: true
+      expects_reply: true
+      valid_replies: ["approve", "approved", "yes", "looks good", "lgtm"]
+
+    video_preview:
+      env_var: DISCORD_CHANNEL_VIDEO_PREVIEW
+      purpose: "Video variant selection"
+      bot_posts: true
+      expects_reply: true
+      valid_replies: ["1", "2", "3", "approve", "approved"]
+
+    publishing_log:
+      env_var: DISCORD_CHANNEL_PUBLISHING_LOG
+      purpose: "Automated publishing status logs"
+      bot_posts: true
+      expects_reply: false
+
+    weekly_analytics:
+      env_var: DISCORD_CHANNEL_WEEKLY_ANALYTICS
+      purpose: "Weekly performance reports"
+      bot_posts: true
+      expects_reply: false

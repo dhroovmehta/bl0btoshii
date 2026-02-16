@@ -1,0 +1,103 @@
+# Seasonal themes and observance days for story idea generation
+themes:
+  # January
+  - date_range: "01-01"
+    theme: "New Year's Day"
+    story_angles: ["Island New Year's resolutions", "Reows' resolution lasts 5 minutes"]
+  - date_range: "01-26"
+    theme: "Australia Day"
+    story_angles: ["Island 'national' holiday debate", "Quacks investigates island founding"]
+
+  # February
+  - date_range: "02-02"
+    theme: "Groundhog Day"
+    story_angles: ["Quacks predicts 6 more weeks of something", "Same day repeating"]
+  - date_range: "02-14"
+    theme: "Valentine's Day"
+    story_angles: ["Characters exchange cards", "Oinks makes heart-shaped menu items"]
+  - date_range: "02-17"
+    theme: "Random Acts of Kindness Day"
+    story_angles: ["Kindness competition gets competitive", "Reows' kindness backfires"]
+
+  # March
+  - date_range: "03-14"
+    theme: "Pi Day"
+    story_angles: ["Oinks bakes pies", "Chubs tries to monetize pi"]
+  - date_range: "03-17"
+    theme: "St. Patrick's Day"
+    story_angles: ["Everything at the diner turns green", "Treasure hunt on the island"]
+
+  # April
+  - date_range: "04-01"
+    theme: "April Fools Day"
+    story_angles: ["Prank war escalates", "Reows' prank goes too well"]
+  - date_range: "04-22"
+    theme: "Earth Day"
+    story_angles: ["Island clean-up day", "Quacks suspects pollution conspiracy"]
+
+  # May
+  - date_range: "05-04"
+    theme: "Star Wars Day"
+    story_angles: ["Characters reenact a space battle", "Reows builds a 'spaceship'"]
+  - date_range: "05-28"
+    theme: "National Burger Day"
+    story_angles: ["Oinks' burger competition", "Everyone's secret burger recipe"]
+
+  # June
+  - date_range: "06-07"
+    theme: "National Donut Day"
+    story_angles: ["Diner donut special", "Chubs monetizes donut holes"]
+  - date_range: "06-21"
+    theme: "First Day of Summer"
+    story_angles: ["Beach day chaos", "Island summer plans go wrong"]
+
+  # July
+  - date_range: "07-04"
+    theme: "Independence Day"
+    story_angles: ["Island declares independence from something", "Fireworks on the beach"]
+  - date_range: "07-17"
+    theme: "World Emoji Day"
+    story_angles: ["Characters can only speak in emoji", "Emoji translation failures"]
+  - date_range: "07-30"
+    theme: "International Friendship Day"
+    story_angles: ["Friendship awards ceremony", "Best friend competition"]
+
+  # August
+  - date_range: "08-08"
+    theme: "International Cat Day"
+    story_angles: ["Meows' special day", "Everyone caters to Meows"]
+  - date_range: "08-10"
+    theme: "National S'mores Day"
+    story_angles: ["Beach campfire s'mores", "S'mores recipe argument"]
+
+  # September
+  - date_range: "09-19"
+    theme: "Talk Like a Pirate Day"
+    story_angles: ["Everyone talks like pirates", "Quacks finds pirate treasure map"]
+  - date_range: "09-22"
+    theme: "First Day of Fall"
+    story_angles: ["Island fall festival", "Pumpkin spice at the diner"]
+
+  # October
+  - date_range: "10-01:10-31"
+    theme: "Halloween Season"
+    story_angles: ["Island costume contest", "Quacks investigates haunted forest", "Haunted diner"]
+  - date_range: "10-29"
+    theme: "National Cat Day"
+    story_angles: ["Meows demands a second holiday", "Cat appreciation ceremony"]
+
+  # November
+  - date_range: "11-01"
+    theme: "National Author Day"
+    story_angles: ["Everyone writes their memoir", "Island book club"]
+  - date_range: "11-28"
+    theme: "Thanksgiving"
+    story_angles: ["Island potluck dinner", "Oinks cooks a feast", "Giving thanks ceremony"]
+
+  # December
+  - date_range: "12-01:12-31"
+    theme: "Holiday Season"
+    story_angles: ["Island gift exchange", "Reows builds a holiday attraction", "Holiday decorating contest"]
+  - date_range: "12-31"
+    theme: "New Year's Eve"
+    story_angles: ["Island countdown party", "Year in review", "Reows' midnight plan"]

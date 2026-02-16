@@ -1,0 +1,14 @@
+.env
+__pycache__/
+*.pyc
+.pytest_cache/
+output/
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+.DS_Store
+blobtoshi_sprites/
+blobtoshi_sprites_BACKUP/
+blobtoshi_sprites_TEST_OUTPUT/

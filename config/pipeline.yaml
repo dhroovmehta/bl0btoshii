@@ -1,0 +1,33 @@
+# Master pipeline configuration
+pipeline:
+  name: mootoshi
+  brand_name: Blobtoshi
+  version: "1.0.0"
+  environment: development
+
+  # Daily pipeline trigger time (ET)
+  daily_trigger_time: "08:00"
+  timezone: "America/New_York"
+
+  # Episode settings
+  episode:
+    duration_target_seconds: 35
+    duration_min_seconds: 30
+    duration_max_seconds: 45
+    ideas_per_day: 3
+    video_variants: 3
+    resolution_width: 1080
+    resolution_height: 1920
+
+  # LLM settings
+  llm:
+    provider: anthropic
+    model: claude-sonnet-4-20250514
+    max_tokens: 4096
+    temperature: 0.8
+
+  # Content rules
+  content:
+    min_episodes_per_day: 1
+    full_cast_episodes_per_week: 1
+    tone: "playful, funny, unserious, clean, child-safe"

@@ -1,0 +1,46 @@
+{
+  "punchline_types": {
+    "deadpan": {
+      "id": "deadpan",
+      "name": "The Deadpan",
+      "description": "A character's complete nonreaction IS the joke",
+      "best_characters": ["pens"],
+      "execution": "Final dialogue line is 1-3 words of total underreaction. Hold on the deadpan face for 2 seconds."
+    },
+    "backfire": {
+      "id": "backfire",
+      "name": "The Backfire",
+      "description": "The plan goes comically wrong",
+      "best_characters": ["reows", "chubs"],
+      "execution": "Build up confidence, then instant reversal. Quick cut to aftermath."
+    },
+    "misunderstanding": {
+      "id": "misunderstanding",
+      "name": "The Misunderstanding",
+      "description": "Characters talk past each other completely",
+      "best_characters": ["meows", "oinks"],
+      "execution": "Two characters having two different conversations simultaneously."
+    },
+    "escalation": {
+      "id": "escalation",
+      "name": "The Escalation",
+      "description": "A small thing spirals absurdly out of control",
+      "best_characters": ["quacks", "reows"],
+      "execution": "Start mundane, each beat doubles the absurdity."
+    },
+    "reveal": {
+      "id": "reveal",
+      "name": "The Reveal",
+      "description": "The conspiracy theory turns out to be wrong (or hilariously right)",
+      "best_characters": ["quacks"],
+      "execution": "Build suspense, dramatic pause, then the mundane (or insane) truth."
+    },
+    "entrance": {
+      "id": "entrance",
+      "name": "The Entrance",
+      "description": "A character bursts in and changes everything",
+      "best_characters": ["reows"],
+      "execution": "Calm scene disrupted by explosive entrance."
+    }
+  }
+}

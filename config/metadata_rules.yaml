@@ -1,0 +1,27 @@
+# Title/description/hashtag generation rules
+metadata_rules:
+  # Common hashtags for all platforms
+  base_hashtags:
+    - "#pixelart"
+    - "#comedy"
+    - "#retro"
+    - "#animation"
+    - "#Blobtoshi"
+
+  # Platform-specific rules
+  tiktok:
+    title_style: "casual, hook-driven, emoji allowed"
+    hashtag_count: 5
+    include_trending: true
+
+  youtube:
+    title_style: "descriptive with series name"
+    title_suffix: "| Blobtoshi #Shorts"
+    hashtag_count: 0
+    tag_count: 15
+
+  instagram:
+    caption_style: "engaging, call-to-action, emoji encouraged"
+    hashtag_count: 15
+    include_cta: true
+    default_cta: "Follow for more island chaos!"

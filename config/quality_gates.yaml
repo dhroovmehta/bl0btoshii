@@ -1,0 +1,27 @@
+# Automated quality check thresholds
+quality_gates:
+  script_generation:
+    max_retries: 3
+    validation_required: true
+    human_review: true
+
+  asset_check:
+    allow_placeholders: false
+    block_on_missing: true
+    notify_discord: true
+
+  video_assembly:
+    resolution_check: true
+    duration_tolerance_pct: 15
+    audio_sync_check: true
+    min_file_size_kb: 500
+    max_file_size_mb: 100
+
+  metadata:
+    safety_check_required: true
+    profanity_scan: true
+    flag_threshold: 0.7
+
+  publishing:
+    max_retries: 3
+    retry_backoff_seconds: [30, 120, 600]

@@ -1,0 +1,87 @@
+{
+  "locations": {
+    "diner_interior": {
+      "id": "diner_interior",
+      "name": "Oinks' Diner",
+      "background_file": "diner_interior.png",
+      "description": "Classic American diner. Counter with stools, booths, neon sign. Menu board in background.",
+      "default_music": "town_theme.ogg",
+      "character_positions": {
+        "behind_counter": {"x": 200, "y": 600, "facing": "right"},
+        "stool_1": {"x": 400, "y": 650, "facing": "left"},
+        "stool_2": {"x": 550, "y": 650, "facing": "left"},
+        "stool_3": {"x": 700, "y": 650, "facing": "left"},
+        "booth_left": {"x": 150, "y": 500, "facing": "right"},
+        "booth_right": {"x": 350, "y": 500, "facing": "left"},
+        "door_entrance": {"x": 900, "y": 600, "facing": "left"}
+      },
+      "mood": "warm, cozy, everyday"
+    },
+    "beach": {
+      "id": "beach",
+      "name": "Island Beach",
+      "background_file": "beach.png",
+      "description": "Sandy beach with ocean, palm trees, blue sky.",
+      "default_music": "chill_theme.ogg",
+      "character_positions": {
+        "left_sand": {"x": 200, "y": 700, "facing": "right"},
+        "right_sand": {"x": 700, "y": 700, "facing": "left"},
+        "water_edge": {"x": 450, "y": 750, "facing": "down"},
+        "under_palm": {"x": 100, "y": 600, "facing": "right"}
+      },
+      "mood": "relaxed, bright, adventurous"
+    },
+    "forest": {
+      "id": "forest",
+      "name": "Island Forest",
+      "background_file": "forest.png",
+      "description": "Dense pixel trees, dappled light, mossy ground.",
+      "default_music": "mystery_theme.ogg",
+      "character_positions": {
+        "clearing_left": {"x": 250, "y": 650, "facing": "right"},
+        "clearing_right": {"x": 650, "y": 650, "facing": "left"},
+        "path_center": {"x": 450, "y": 700, "facing": "down"}
+      },
+      "mood": "mysterious, adventurous"
+    },
+    "town_square": {
+      "id": "town_square",
+      "name": "Town Square",
+      "background_file": "town_square.png",
+      "description": "Open square with fountain, benches, storefronts.",
+      "default_music": "town_theme.ogg",
+      "character_positions": {
+        "bench_left": {"x": 200, "y": 650, "facing": "right"},
+        "bench_right": {"x": 600, "y": 650, "facing": "left"},
+        "fountain_center": {"x": 400, "y": 600, "facing": "down"},
+        "standing_left": {"x": 150, "y": 700, "facing": "right"},
+        "standing_right": {"x": 750, "y": 700, "facing": "left"}
+      },
+      "mood": "public, social, daytime"
+    },
+    "chubs_office": {
+      "id": "chubs_office",
+      "name": "Chubs' Office",
+      "background_file": "chubs_office.png",
+      "description": "Small office with desk, charts on wall, nameplate.",
+      "default_music": "town_theme.ogg",
+      "character_positions": {
+        "behind_desk": {"x": 450, "y": 550, "facing": "down"},
+        "visitor_chair": {"x": 450, "y": 750, "facing": "up"}
+      },
+      "mood": "professional, slightly absurd"
+    },
+    "reows_place": {
+      "id": "reows_place",
+      "name": "Reows' Place",
+      "background_file": "reows_place.png",
+      "description": "Chaotic, eclectic room. Random items everywhere.",
+      "default_music": "silly_theme.ogg",
+      "character_positions": {
+        "center": {"x": 450, "y": 650, "facing": "down"},
+        "doorway": {"x": 800, "y": 650, "facing": "left"}
+      },
+      "mood": "chaotic, eccentric, energetic"
+    }
+  }
+}

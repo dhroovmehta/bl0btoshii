@@ -1,0 +1,26 @@
+# Platform API credentials and settings
+# Actual credentials are in .env — this file defines platform behavior
+platforms:
+  tiktok:
+    enabled: false
+    max_title_length: 150
+    max_description_length: 2200
+    max_hashtags: 10
+    video_format: mp4
+    aspect_ratio: "9:16"
+
+  youtube:
+    enabled: false
+    max_title_length: 100
+    max_description_length: 5000
+    max_tags: 30
+    video_format: mp4
+    category: "Film & Animation"
+    privacy: "public"
+
+  instagram:
+    enabled: false
+    max_caption_length: 2200
+    max_hashtags: 30
+    video_format: mp4
+    aspect_ratio: "9:16"

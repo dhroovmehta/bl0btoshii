@@ -1,0 +1,87 @@
+{
+  "situations": {
+    "everyday_life": {
+      "id": "everyday_life",
+      "name": "Everyday Life",
+      "description": "Relatable daily situations — ordering food, waiting, small talk",
+      "best_locations": ["diner_interior", "town_square", "beach"],
+      "templates": [
+        "{char_a} tries to order food but {char_b} complicates it",
+        "{char_a} and {char_b} are waiting for something that never comes",
+        "{char_a} asks {char_b} a simple question that spirals",
+        "{char_a} has a minor inconvenience that {char_b} makes worse",
+        "{char_a} tries to relax but {char_b} keeps interrupting"
+      ]
+    },
+    "mystery_investigation": {
+      "id": "mystery_investigation",
+      "name": "Mystery / Investigation",
+      "description": "Quacks-driven — something mundane gets blown out of proportion",
+      "best_locations": ["diner_interior", "forest", "town_square"],
+      "best_characters": ["quacks"],
+      "templates": [
+        "{char_a} notices something 'suspicious' about {location}",
+        "{char_a} interrogates {char_b} about a mundane change",
+        "{char_a} builds a conspiracy theory about {everyday_thing}",
+        "{char_a} tries to recruit {char_b} for an investigation",
+        "{char_a} connects two completely unrelated events"
+      ]
+    },
+    "scheme_adventure": {
+      "id": "scheme_adventure",
+      "name": "Scheme / Adventure",
+      "description": "Reows-driven — a wild idea, someone gets dragged along",
+      "best_locations": ["beach", "forest", "diner_interior"],
+      "best_characters": ["reows"],
+      "templates": [
+        "{char_a} has a 'great idea' and needs {char_b}'s help",
+        "{char_a} found something 'amazing' and drags {char_b} to see it",
+        "{char_a} tries to 'improve' something that was fine",
+        "{char_a} claims to have a new skill and demonstrates it poorly",
+        "{char_a} pitches a plan with total confidence. It's terrible."
+      ]
+    },
+    "business_opportunity": {
+      "id": "business_opportunity",
+      "name": "Business Opportunity",
+      "description": "Chubs-driven — everything is a deal, a pitch, or an optimization",
+      "best_locations": ["diner_interior", "chubs_office", "town_square"],
+      "best_characters": ["chubs"],
+      "templates": [
+        "{char_a} tries to monetize {everyday_thing}",
+        "{char_a} pitches a 'partnership' to {char_b} for something absurd",
+        "{char_a} runs the numbers on {char_b}'s hobby",
+        "{char_a} tries to franchise the diner (again)",
+        "{char_a} gives unsolicited business advice to {char_b}"
+      ]
+    },
+    "diplomatic_incident": {
+      "id": "diplomatic_incident",
+      "name": "Diplomatic Incident",
+      "description": "Meows-driven — formality meets casual island life",
+      "best_locations": ["diner_interior", "town_square"],
+      "best_characters": ["meows"],
+      "templates": [
+        "{char_a} treats a simple interaction as a diplomatic negotiation",
+        "{char_a} invokes a nonexistent treaty or accord",
+        "{char_a} tries to establish formal protocols for {everyday_thing}",
+        "{char_a} sends a formal communique about a casual invitation",
+        "{char_a} holds a press conference about {mundane_event}"
+      ]
+    },
+    "chill_hangout": {
+      "id": "chill_hangout",
+      "name": "Chill Hangout",
+      "description": "Pens-driven — calm vibes while chaos happens around him",
+      "best_locations": ["diner_interior", "beach"],
+      "best_characters": ["pens"],
+      "templates": [
+        "{char_a} just wants to sit quietly but {char_b} has other plans",
+        "{char_a} and {char_b} have a comfortable silence interrupted by {char_c}",
+        "{char_a} gives one-word advice that accidentally solves everything",
+        "{char_a} watches chaos unfold without reacting",
+        "{char_a} is asked to choose a side. Refuses. Sips diet soda."
+      ]
+    }
+  }
+}
