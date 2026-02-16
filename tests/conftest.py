@@ -48,7 +48,7 @@ def sample_script():
                     },
                 ],
                 "sfx_triggers": [],
-                "music": "diner_theme.ogg",
+                "music": "main_theme.wav",
             },
         ],
         "metadata": {
@@ -82,7 +82,7 @@ def sample_script_missing_assets():
                 "character_animations": {"fakeanimal": "idle"},
                 "dialogue": [],
                 "sfx_triggers": [{"sfx": "nonexistent_sound.wav", "time_ms": 0}],
-                "music": "missing.ogg",
+                "music": "missing.wav",
             },
         ],
         "metadata": {},

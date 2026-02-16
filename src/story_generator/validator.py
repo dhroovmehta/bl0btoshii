@@ -23,8 +23,7 @@ VALID_SFX = [
 ]
 
 VALID_MUSIC = [
-    "town_theme.ogg", "adventure_theme.ogg", "mystery_theme.ogg",
-    "chill_theme.ogg", "silly_theme.ogg"
+    "main_theme.wav", "tense_theme.wav", "upbeat_theme.wav"
 ]
 
 

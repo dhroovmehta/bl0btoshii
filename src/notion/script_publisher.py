@@ -16,38 +16,8 @@ def publish_script(script_data):
     client = get_client()
     db_id = get_scripts_db_id()
 
-    episode_id = script_data.get("episode_id", "EP001")
-    title = script_data.get("title", "Untitled")
-    episode_num = int(episode_id.replace("EP", ""))
-    version = script_data.get("version", 1)
-    date_str = script_data.get("created_at", datetime.utcnow().isoformat())
-    date_display = datetime.fromisoformat(date_str.replace("Z", "+00:00")).strftime("%b %d, %Y")
-
-    # Page title: EP # XXX | Title | Date
-    page_title = f"EP # {episode_num:03d} | {title} | {date_display}"
-    if version > 1:
-        page_title += f" (v{version})"
-
-    # Characters featured
-    characters = script_data.get("metadata", {}).get("characters_featured", [])
-    char_names = [c.capitalize() for c in characters]
-
-    # Location
-    location = script_data.get("metadata", {}).get("primary_location", "")
-    location_display = location.replace("_", " ").title() if location else ""
-
-    # Situation and punchline
-    situation = script_data.get("generation_params", {}).get("situation", "")
-    situation_display = situation.replace("_", " ").title() if situation else ""
-    punchline = script_data.get("metadata", {}).get("punchline_type", "")
-    punchline_display = punchline.replace("_", " ").title() if punchline else ""
-
-    # Build page properties
-    properties = {
-        "title": {
-            "title": [{"text": {"content": page_title}}]
-        },
-    }
+    # Build page properties (title + all 8 database fields)
+    properties = _build_properties(script_data)
 
     # Build page body — formatted script content
     body_blocks = _build_script_body(script_data)
@@ -61,6 +31,65 @@ def publish_script(script_data):
 
     page_url = response.get("url", "")
     return page_url
+
+
+def _build_properties(script_data):
+    """Build Notion database properties dict from script data.
+
+    Sets: title, Episode Number, Date, Status, Characters,
+    Location, Situation, Punchline Type, Version.
+    """
+    episode_id = script_data.get("episode_id", "EP001")
+    title = script_data.get("title", "Untitled")
+    episode_num = int(episode_id.replace("EP", ""))
+    version = script_data.get("version", 1)
+    date_str = script_data.get("created_at", datetime.utcnow().isoformat())
+    date_parsed = datetime.fromisoformat(date_str.replace("Z", "+00:00"))
+    date_display = date_parsed.strftime("%b %d, %Y")
+
+    # Page title: EP # XXX | Title | Date
+    page_title = f"EP # {episode_num:03d} | {title} | {date_display}"
+    if version > 1:
+        page_title += f" (v{version})"
+
+    properties = {
+        "title": {
+            "title": [{"text": {"content": page_title}}]
+        },
+        "Episode Number": {"number": episode_num},
+        "Date": {"date": {"start": date_parsed.strftime("%Y-%m-%d")}},
+        "Status": {"select": {"name": "Draft"}},
+        "Version": {"number": version},
+    }
+
+    # Characters (multi-select)
+    characters = script_data.get("metadata", {}).get("characters_featured", [])
+    properties["Characters"] = {
+        "multi_select": [{"name": c.capitalize()} for c in characters]
+    }
+
+    # Location (select) — omit if not present
+    location = script_data.get("metadata", {}).get("primary_location", "")
+    if location:
+        properties["Location"] = {
+            "select": {"name": location.replace("_", " ").title()}
+        }
+
+    # Situation (select) — omit if not present
+    situation = script_data.get("generation_params", {}).get("situation", "")
+    if situation:
+        properties["Situation"] = {
+            "select": {"name": situation.replace("_", " ").title()}
+        }
+
+    # Punchline Type (select) — omit if not present
+    punchline = script_data.get("metadata", {}).get("punchline_type", "")
+    if punchline:
+        properties["Punchline Type"] = {
+            "select": {"name": punchline.replace("_", " ").title()}
+        }
+
+    return properties
 
 
 def _build_script_body(script_data):

@@ -1,4 +1,10 @@
-"""Video variant generator — creates 2-3 versions of each episode for preview selection."""
+"""Video variant generator — creates 2-3 versions of each episode for preview selection.
+
+Music selection is situation-based (Curb Your Enthusiasm style):
+- main_theme.wav  — bouncy/playful (everyday, business, diplomatic, chill)
+- tense_theme.wav — tense/awkward (mystery, scheme)
+- upbeat_theme.wav — fast/energetic (variant 2 alternate)
+"""
 
 import copy
 import os
@@ -7,39 +13,39 @@ from src.video_assembler.composer import compose_episode
 
 ASSETS_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "assets")
 
-# Variant presets
+# Variant presets — each uses a different track
 VARIANT_PRESETS = [
     {
         "name": "Standard",
-        "description": "Default pacing, location-default music",
-        "music": "default_theme.wav",
+        "description": "Default pacing, situation-matched music",
+        "music": "main_theme.wav",
         "pacing_multiplier": 1.0,
         "punchline_hold_seconds": 2,
     },
     {
         "name": "Upbeat",
-        "description": "Alternate music, slightly faster pacing",
-        "music": "action_theme.wav",
+        "description": "Faster pacing, energetic music",
+        "music": "upbeat_theme.wav",
         "pacing_multiplier": 0.85,
         "punchline_hold_seconds": 1,
     },
     {
-        "name": "Chill",
-        "description": "Chill music, slower pacing with extended punchline hold",
-        "music": "chill_theme.wav",
+        "name": "Tense",
+        "description": "Slower pacing, tense underscore, extended punchline hold",
+        "music": "tense_theme.wav",
         "pacing_multiplier": 1.15,
         "punchline_hold_seconds": 3,
     },
 ]
 
-# Music options for location-based defaults
-LOCATION_MUSIC = {
-    "diner_interior": "default_theme.wav",
-    "town_square": "town_theme.wav",
-    "beach_cove": "chill_theme.wav",
-    "forest_clearing": "mystery_theme.wav",
-    "hilltop_lookout": "chill_theme.wav",
-    "market_stalls": "town_theme.wav",
+# Situation-based music selection (mood drives music, not location)
+SITUATION_MUSIC = {
+    "everyday_life": "main_theme.wav",
+    "business": "main_theme.wav",
+    "diplomatic": "main_theme.wav",
+    "chill_hangout": "main_theme.wav",
+    "mystery": "tense_theme.wav",
+    "scheme": "tense_theme.wav",
 }
 
 
@@ -76,23 +82,21 @@ def _adjust_script_pacing(script, pacing_multiplier, punchline_hold_seconds):
     return adjusted
 
 
-def _get_location_music(script):
-    """Determine default music based on the primary location in the script."""
-    scenes = script.get("scenes", [])
-    if not scenes:
-        return "default_theme.wav"
+def _get_situation_music(script):
+    """Determine default music based on the episode's situation type.
 
-    # Use the first scene's background as primary location
-    primary_location = scenes[0].get("background", "diner_interior")
-    return LOCATION_MUSIC.get(primary_location, "default_theme.wav")
+    Curb-style: mood drives music selection, not location.
+    """
+    situation = script.get("generation_params", {}).get("situation", "")
+    return SITUATION_MUSIC.get(situation, "main_theme.wav")
 
 
 def generate_variants(script, count=3):
     """Generate 2-3 video variants of an episode.
 
-    Variant 1: Standard — default pacing, location-appropriate music
-    Variant 2: Upbeat — faster pacing, alternate music
-    Variant 3: Chill — slower pacing, extended punchline hold, chill music
+    Variant 1: Standard — default pacing, situation-appropriate music
+    Variant 2: Upbeat — faster pacing, energetic music
+    Variant 3: Tense — slower pacing, extended punchline hold, tense underscore
 
     Args:
         script: Approved episode script dict.
@@ -106,9 +110,9 @@ def generate_variants(script, count=3):
     count = max(2, min(count, len(VARIANT_PRESETS)))
     presets = VARIANT_PRESETS[:count]
 
-    # Override first variant's music with location-appropriate default
-    location_music = _get_location_music(script)
-    presets[0]["music"] = location_music
+    # Override first variant's music with situation-appropriate default
+    situation_music = _get_situation_music(script)
+    presets[0]["music"] = situation_music
 
     variants = []
 
@@ -126,7 +130,7 @@ def generate_variants(script, count=3):
         # Music path
         music_path = os.path.join(ASSETS_DIR, "music", preset["music"])
         if not os.path.exists(music_path):
-            music_path = os.path.join(ASSETS_DIR, "music", "default_theme.wav")
+            music_path = os.path.join(ASSETS_DIR, "music", "main_theme.wav")
 
         # Compose with unique output name
         output_name = f"{episode_id}_v{variant_num}"
@@ -202,7 +206,7 @@ def generate_custom_variant(script, edit_notes, existing_variants):
     # Music path
     music_path = os.path.join(ASSETS_DIR, "music", music)
     if not os.path.exists(music_path):
-        music_path = os.path.join(ASSETS_DIR, "music", "default_theme.wav")
+        music_path = os.path.join(ASSETS_DIR, "music", "main_theme.wav")
 
     # Compose custom version
     episode_id = script.get("metadata", {}).get("episode_id", "EP000").lower()

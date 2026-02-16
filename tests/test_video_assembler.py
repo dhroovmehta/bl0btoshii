@@ -3,7 +3,7 @@
 Tests cover:
 - sprite_manager: load_sprite, get_character_position, composite_character
 - scene_builder: load_background, FRAME constants
-- variant_generator: _adjust_script_pacing, _get_location_music
+- variant_generator: _adjust_script_pacing, _get_situation_music, SITUATION_MUSIC
 """
 
 import copy
@@ -27,9 +27,9 @@ from src.video_assembler.scene_builder import (
 )
 from src.video_assembler.variant_generator import (
     _adjust_script_pacing,
-    _get_location_music,
+    _get_situation_music,
     VARIANT_PRESETS,
-    LOCATION_MUSIC,
+    SITUATION_MUSIC,
 )
 
 
@@ -208,27 +208,90 @@ class TestAdjustScriptPacing:
         assert result["scenes"] == []
 
 
-class TestGetLocationMusic:
-    """Test location-based music lookup (pure function)."""
+class TestGetSituationMusic:
+    """Test situation-based music selection (Curb-style: mood drives music)."""
 
-    def test_known_location(self):
-        script = {"scenes": [{"background": "diner_interior"}]}
-        assert _get_location_music(script) == "default_theme.wav"
+    def test_everyday_life_uses_main_theme(self):
+        script = {"generation_params": {"situation": "everyday_life"}}
+        assert _get_situation_music(script) == "main_theme.wav"
 
-    def test_town_square(self):
-        script = {"scenes": [{"background": "town_square"}]}
-        assert _get_location_music(script) == "town_theme.wav"
+    def test_business_uses_main_theme(self):
+        script = {"generation_params": {"situation": "business"}}
+        assert _get_situation_music(script) == "main_theme.wav"
 
-    def test_unknown_location_returns_default(self):
-        script = {"scenes": [{"background": "unknown_place"}]}
-        assert _get_location_music(script) == "default_theme.wav"
+    def test_diplomatic_uses_main_theme(self):
+        script = {"generation_params": {"situation": "diplomatic"}}
+        assert _get_situation_music(script) == "main_theme.wav"
 
-    def test_empty_scenes_returns_default(self):
-        assert _get_location_music({"scenes": []}) == "default_theme.wav"
+    def test_chill_hangout_uses_main_theme(self):
+        script = {"generation_params": {"situation": "chill_hangout"}}
+        assert _get_situation_music(script) == "main_theme.wav"
 
-    def test_variant_presets_exist(self):
+    def test_mystery_uses_tense_theme(self):
+        script = {"generation_params": {"situation": "mystery"}}
+        assert _get_situation_music(script) == "tense_theme.wav"
+
+    def test_scheme_uses_tense_theme(self):
+        script = {"generation_params": {"situation": "scheme"}}
+        assert _get_situation_music(script) == "tense_theme.wav"
+
+    def test_unknown_situation_uses_main_theme(self):
+        script = {"generation_params": {"situation": "unknown_thing"}}
+        assert _get_situation_music(script) == "main_theme.wav"
+
+    def test_missing_generation_params_uses_main_theme(self):
+        assert _get_situation_music({}) == "main_theme.wav"
+
+    def test_missing_situation_uses_main_theme(self):
+        script = {"generation_params": {}}
+        assert _get_situation_music(script) == "main_theme.wav"
+
+
+class TestSituationMusicMapping:
+    """Test SITUATION_MUSIC dict has correct entries."""
+
+    def test_all_situations_mapped(self):
+        expected = ["everyday_life", "business", "diplomatic",
+                    "chill_hangout", "mystery", "scheme"]
+        for situation in expected:
+            assert situation in SITUATION_MUSIC
+
+    def test_only_valid_tracks(self):
+        valid_tracks = {"main_theme.wav", "tense_theme.wav", "upbeat_theme.wav"}
+        for track in SITUATION_MUSIC.values():
+            assert track in valid_tracks
+
+
+class TestVariantPresets:
+    """Test variant preset structure and music references."""
+
+    def test_three_presets_exist(self):
         assert len(VARIANT_PRESETS) >= 3
+
+    def test_preset_structure(self):
         for preset in VARIANT_PRESETS:
             assert "name" in preset
+            assert "music" in preset
             assert "pacing_multiplier" in preset
             assert "punchline_hold_seconds" in preset
+
+    def test_presets_use_valid_tracks(self):
+        valid_tracks = {"main_theme.wav", "tense_theme.wav", "upbeat_theme.wav"}
+        for preset in VARIANT_PRESETS:
+            assert preset["music"] in valid_tracks
+
+    def test_presets_have_different_music(self):
+        """Each preset should offer a different track."""
+        music_set = {p["music"] for p in VARIANT_PRESETS}
+        assert len(music_set) == 3
+
+    def test_standard_preset_is_first(self):
+        assert VARIANT_PRESETS[0]["name"] == "Standard"
+
+    def test_upbeat_preset_faster_pacing(self):
+        upbeat = VARIANT_PRESETS[1]
+        assert upbeat["pacing_multiplier"] < 1.0
+
+    def test_tense_preset_slower_pacing(self):
+        tense = VARIANT_PRESETS[2]
+        assert tense["pacing_multiplier"] > 1.0

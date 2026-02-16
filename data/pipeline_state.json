@@ -95,7 +95,7 @@
           }
         ],
         "sfx_triggers": [],
-        "music": "town_theme.ogg"
+        "music": "main_theme.wav"
       },
       {
         "scene_number": 2,
@@ -140,7 +140,7 @@
             "time_ms": 7000
           }
         ],
-        "music": "town_theme.ogg"
+        "music": "main_theme.wav"
       },
       {
         "scene_number": 3,
@@ -174,7 +174,7 @@
           }
         ],
         "sfx_triggers": [],
-        "music": "town_theme.ogg"
+        "music": "main_theme.wav"
       }
     ],
     "end_card": {

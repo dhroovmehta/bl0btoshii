@@ -5,7 +5,7 @@
       "name": "Oinks' Diner",
       "background_file": "diner_interior.png",
       "description": "Classic American diner. Counter with stools, booths, neon sign. Menu board in background.",
-      "default_music": "town_theme.ogg",
+      "default_music": "main_theme.wav",
       "character_positions": {
         "behind_counter": {"x": 200, "y": 600, "facing": "right"},
         "stool_1": {"x": 400, "y": 650, "facing": "left"},
@@ -22,7 +22,7 @@
       "name": "Island Beach",
       "background_file": "beach.png",
       "description": "Sandy beach with ocean, palm trees, blue sky.",
-      "default_music": "chill_theme.ogg",
+      "default_music": "main_theme.wav",
       "character_positions": {
         "left_sand": {"x": 200, "y": 700, "facing": "right"},
         "right_sand": {"x": 700, "y": 700, "facing": "left"},
@@ -36,7 +36,7 @@
       "name": "Island Forest",
       "background_file": "forest.png",
       "description": "Dense pixel trees, dappled light, mossy ground.",
-      "default_music": "mystery_theme.ogg",
+      "default_music": "tense_theme.wav",
       "character_positions": {
         "clearing_left": {"x": 250, "y": 650, "facing": "right"},
         "clearing_right": {"x": 650, "y": 650, "facing": "left"},
@@ -49,7 +49,7 @@
       "name": "Town Square",
       "background_file": "town_square.png",
       "description": "Open square with fountain, benches, storefronts.",
-      "default_music": "town_theme.ogg",
+      "default_music": "main_theme.wav",
       "character_positions": {
         "bench_left": {"x": 200, "y": 650, "facing": "right"},
         "bench_right": {"x": 600, "y": 650, "facing": "left"},
@@ -64,7 +64,7 @@
       "name": "Chubs' Office",
       "background_file": "chubs_office.png",
       "description": "Small office with desk, charts on wall, nameplate.",
-      "default_music": "town_theme.ogg",
+      "default_music": "main_theme.wav",
       "character_positions": {
         "behind_desk": {"x": 450, "y": 550, "facing": "down"},
         "visitor_chair": {"x": 450, "y": 750, "facing": "up"}
@@ -76,7 +76,7 @@
       "name": "Reows' Place",
       "background_file": "reows_place.png",
       "description": "Chaotic, eclectic room. Random items everywhere.",
-      "default_music": "silly_theme.ogg",
+      "default_music": "upbeat_theme.wav",
       "character_positions": {
         "center": {"x": 450, "y": 650, "facing": "down"},
         "doorway": {"x": 800, "y": 650, "facing": "left"}

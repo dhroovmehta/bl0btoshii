@@ -114,7 +114,7 @@ def compose_episode(script, music_path=None, output_name=None):
 
     Args:
         script: Full episode script dict.
-        music_path: Path to background music. If None, uses default_theme.
+        music_path: Path to background music. If None, uses main_theme.
         output_name: Output filename (without extension). Defaults to episode_id.
 
     Returns:
@@ -137,7 +137,7 @@ def compose_episode(script, music_path=None, output_name=None):
 
     # Default music
     if music_path is None:
-        music_path = os.path.join(ASSETS_DIR, "music", "default_theme.wav")
+        music_path = os.path.join(ASSETS_DIR, "music", "main_theme.wav")
 
     print(f"[Composer] Building {episode_id}: {title}")
 

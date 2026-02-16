@@ -91,7 +91,7 @@ Return ONLY valid JSON matching this exact schema. No markdown, no explanation, 
       "sfx_triggers": [
         {{"sfx": "sound_file_name", "time_ms": 500}}
       ],
-      "music": "music_file.ogg"
+      "music": "main_theme.wav"
     }}
   ],
   "end_card": {{
@@ -119,4 +119,4 @@ IMPORTANT:
 - Use ONLY character positions defined in the location data
 - Use ONLY sprite states defined in the character data
 - Use ONLY available SFX files: door_burst, surprise, sip, cash_register, magnifying_glass, menu_select
-- Use ONLY available music: town_theme.ogg, adventure_theme.ogg, mystery_theme.ogg, chill_theme.ogg, silly_theme.ogg
+- Use ONLY available music: main_theme.wav, tense_theme.wav, upbeat_theme.wav

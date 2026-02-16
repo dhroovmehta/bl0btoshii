@@ -579,11 +579,9 @@ mootoshi/
 │   │       ├── pens_portrait.png
 │   │       └── ...
 │   ├── music/
-│   │   ├── town_theme.ogg
-│   │   ├── adventure_theme.ogg
-│   │   ├── mystery_theme.ogg
-│   │   ├── chill_theme.ogg
-│   │   ├── silly_theme.ogg
+│   │   ├── main_theme.wav           # Bouncy/playful (Curb "Frolic" style)
+│   │   ├── tense_theme.wav          # Tense/awkward underscore
+│   │   ├── upbeat_theme.wav         # Fast/energetic transition
 │   │   └── LICENSES.md              # Music license documentation
 │   └── sfx/
 │       ├── text_blip_low.wav
@@ -1010,7 +1008,7 @@ mootoshi/
       "name": "Oinks' Diner",
       "background_file": "diner_interior.png",
       "description": "Classic American diner. Counter with stools, booths, neon sign. Menu board in background.",
-      "default_music": "town_theme.ogg",
+      "default_music": "main_theme.wav",
       "character_positions": {
         "behind_counter": {"x": 200, "y": 600, "facing": "right"},
         "stool_1": {"x": 400, "y": 650, "facing": "left"},
@@ -1027,7 +1025,7 @@ mootoshi/
       "name": "Island Beach",
       "background_file": "beach.png",
       "description": "Sandy beach with ocean, palm trees, blue sky.",
-      "default_music": "chill_theme.ogg",
+      "default_music": "main_theme.wav",
       "character_positions": {
         "left_sand": {"x": 200, "y": 700, "facing": "right"},
         "right_sand": {"x": 700, "y": 700, "facing": "left"},
@@ -1041,7 +1039,7 @@ mootoshi/
       "name": "Island Forest",
       "background_file": "forest.png",
       "description": "Dense pixel trees, dappled light, mossy ground.",
-      "default_music": "mystery_theme.ogg",
+      "default_music": "tense_theme.wav",
       "character_positions": {
         "clearing_left": {"x": 250, "y": 650, "facing": "right"},
         "clearing_right": {"x": 650, "y": 650, "facing": "left"},
@@ -1054,7 +1052,7 @@ mootoshi/
       "name": "Town Square",
       "background_file": "town_square.png",
       "description": "Open square with fountain, benches, storefronts.",
-      "default_music": "town_theme.ogg",
+      "default_music": "main_theme.wav",
       "character_positions": {
         "bench_left": {"x": 200, "y": 650, "facing": "right"},
         "bench_right": {"x": 600, "y": 650, "facing": "left"},
@@ -1069,7 +1067,7 @@ mootoshi/
       "name": "Chubs' Office",
       "background_file": "chubs_office.png",
       "description": "Small office with desk, charts on wall, nameplate.",
-      "default_music": "town_theme.ogg",
+      "default_music": "main_theme.wav",
       "character_positions": {
         "behind_desk": {"x": 450, "y": 550, "facing": "down"},
         "visitor_chair": {"x": 450, "y": 750, "facing": "up"}
@@ -1081,7 +1079,7 @@ mootoshi/
       "name": "Reows' Place",
       "background_file": "reows_place.png",
       "description": "Chaotic, eclectic room. Random items everywhere.",
-      "default_music": "silly_theme.ogg",
+      "default_music": "upbeat_theme.wav",
       "character_positions": {
         "center": {"x": 450, "y": 650, "facing": "down"},
         "doorway": {"x": 800, "y": 650, "facing": "left"}
@@ -1140,7 +1138,7 @@ mootoshi/
       "sfx_triggers": [
         {"sfx": "magnifying_glass", "time_ms": 500}
       ],
-      "music": "mystery_theme.ogg"
+      "music": "tense_theme.wav"
     }
   ],
   "end_card": {
@@ -2365,19 +2363,12 @@ These guides will be created as individual markdown files in the `guides/` direc
    - **Chill theme** — Relaxed, easygoing. For Pens-centric calm episodes.
    - **Silly theme** — Goofy, playful. For Reows-centric chaotic episodes.
 
-3. **Track license documentation** — For EVERY track you download, create an entry in `assets/music/LICENSES.md`:
-   ```
-   ## town_theme.ogg
-   - Title: [Original Track Title]
-   - Artist: [Artist Name]
-   - Source: [URL where you downloaded it]
-   - License: [License type, e.g., CC BY 4.0]
-   - Attribution: [Required credit text, if any]
-   ```
+3. **Music tracks** — The pipeline uses 3 NES 8-bit style WAV tracks (Curb Your Enthusiasm-inspired):
+   - `main_theme.wav` — Bouncy, playful (like "Frolic") — default for most scenes
+   - `tense_theme.wav` — Tense, awkward underscore — for mystery/scheme situations
+   - `upbeat_theme.wav` — Fast, energetic transition — for action moments
 
-4. **Convert to OGG** — The pipeline uses OGG format. If your download is MP3 or WAV, convert it. You can use any free online converter (e.g., cloudconvert.com → select your file → choose OGG → download).
-
-5. **Place in project** — Copy all OGG files to `assets/music/`.
+   These are generated programmatically via `scripts/generate_music.py` and placed in `assets/music/`.
 
 ---
 

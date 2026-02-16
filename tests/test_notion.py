@@ -3,6 +3,8 @@
 Tests cover:
 - Block builders: _heading, _paragraph, _bullet, _divider
 - _build_script_body: complete body construction
+- _build_properties: database property population (Episode Number, Date, Status,
+  Characters, Location, Situation, Punchline Type, Version)
 """
 
 import pytest
@@ -13,6 +15,7 @@ from src.notion.script_publisher import (
     _bullet,
     _divider,
     _build_script_body,
+    _build_properties,
 )
 
 
@@ -199,3 +202,135 @@ class TestBuildScriptBody:
         ]
         # Should have events + gags as bullet items
         assert len(bullet_blocks) >= 2
+
+
+# ---------------------------------------------------------------------------
+# _build_properties
+# ---------------------------------------------------------------------------
+
+class TestBuildProperties:
+    """Test Notion database property population for script pages."""
+
+    @pytest.fixture
+    def full_script(self):
+        return {
+            "episode_id": "EP024",
+            "title": "The Diplomatic Pouch",
+            "version": 1,
+            "created_at": "2026-02-15T10:30:00Z",
+            "metadata": {
+                "characters_featured": ["quacks", "meows"],
+                "primary_location": "town_square",
+                "punchline_type": "reveal",
+            },
+            "generation_params": {
+                "character_a": "quacks",
+                "character_b": "meows",
+                "location": "town_square",
+                "situation": "diplomatic",
+            },
+        }
+
+    def test_title_format(self, full_script):
+        props = _build_properties(full_script)
+        title_text = props["title"]["title"][0]["text"]["content"]
+        assert "EP # 024" in title_text
+        assert "The Diplomatic Pouch" in title_text
+
+    def test_title_includes_version_when_greater_than_1(self, full_script):
+        full_script["version"] = 3
+        props = _build_properties(full_script)
+        title_text = props["title"]["title"][0]["text"]["content"]
+        assert "(v3)" in title_text
+
+    def test_title_no_version_suffix_for_v1(self, full_script):
+        props = _build_properties(full_script)
+        title_text = props["title"]["title"][0]["text"]["content"]
+        assert "(v" not in title_text
+
+    def test_episode_number(self, full_script):
+        props = _build_properties(full_script)
+        assert props["Episode Number"]["number"] == 24
+
+    def test_episode_number_single_digit(self):
+        script = {"episode_id": "EP003", "title": "Test", "created_at": "2026-01-01T00:00:00Z"}
+        props = _build_properties(script)
+        assert props["Episode Number"]["number"] == 3
+
+    def test_date_iso_format(self, full_script):
+        props = _build_properties(full_script)
+        assert props["Date"]["date"]["start"] == "2026-02-15"
+
+    def test_status_defaults_to_draft(self, full_script):
+        props = _build_properties(full_script)
+        assert props["Status"]["select"]["name"] == "Draft"
+
+    def test_characters_multi_select(self, full_script):
+        props = _build_properties(full_script)
+        char_names = [c["name"] for c in props["Characters"]["multi_select"]]
+        assert "Quacks" in char_names
+        assert "Meows" in char_names
+
+    def test_characters_capitalized(self, full_script):
+        props = _build_properties(full_script)
+        for entry in props["Characters"]["multi_select"]:
+            assert entry["name"][0].isupper()
+
+    def test_characters_empty_when_missing(self):
+        script = {"episode_id": "EP001", "title": "Test", "created_at": "2026-01-01T00:00:00Z"}
+        props = _build_properties(script)
+        assert props["Characters"]["multi_select"] == []
+
+    def test_location_select(self, full_script):
+        props = _build_properties(full_script)
+        assert props["Location"]["select"]["name"] == "Town Square"
+
+    def test_location_omitted_when_missing(self):
+        script = {"episode_id": "EP001", "title": "Test", "created_at": "2026-01-01T00:00:00Z"}
+        props = _build_properties(script)
+        assert "Location" not in props
+
+    def test_situation_select(self, full_script):
+        props = _build_properties(full_script)
+        assert props["Situation"]["select"]["name"] == "Diplomatic"
+
+    def test_situation_omitted_when_missing(self):
+        script = {"episode_id": "EP001", "title": "Test", "created_at": "2026-01-01T00:00:00Z"}
+        props = _build_properties(script)
+        assert "Situation" not in props
+
+    def test_punchline_type_select(self, full_script):
+        props = _build_properties(full_script)
+        assert props["Punchline Type"]["select"]["name"] == "Reveal"
+
+    def test_punchline_type_omitted_when_missing(self):
+        script = {"episode_id": "EP001", "title": "Test", "created_at": "2026-01-01T00:00:00Z"}
+        props = _build_properties(script)
+        assert "Punchline Type" not in props
+
+    def test_version_number(self, full_script):
+        props = _build_properties(full_script)
+        assert props["Version"]["number"] == 1
+
+    def test_version_defaults_to_1(self):
+        script = {"episode_id": "EP001", "title": "Test", "created_at": "2026-01-01T00:00:00Z"}
+        props = _build_properties(script)
+        assert props["Version"]["number"] == 1
+
+    def test_underscore_location_formatted(self):
+        script = {
+            "episode_id": "EP001", "title": "Test",
+            "created_at": "2026-01-01T00:00:00Z",
+            "metadata": {"primary_location": "chubs_office"},
+        }
+        props = _build_properties(script)
+        assert props["Location"]["select"]["name"] == "Chubs Office"
+
+    def test_underscore_situation_formatted(self):
+        script = {
+            "episode_id": "EP001", "title": "Test",
+            "created_at": "2026-01-01T00:00:00Z",
+            "generation_params": {"situation": "everyday_life"},
+        }
+        props = _build_properties(script)
+        assert props["Situation"]["select"]["name"] == "Everyday Life"
