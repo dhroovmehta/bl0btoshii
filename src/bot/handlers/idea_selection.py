@@ -181,6 +181,10 @@ async def _generate_and_post_script(idea, bot):
         print(f"[Idea Selection] Error generating script: {e}")
         if idea_channel:
             await idea_channel.send(f"Error generating script: {e}")
+        from src.bot.alerts import notify_error
+        from src.bot.state import load_state as _load
+        ep = _load().get("current_episode")
+        await notify_error(bot, "Script Generation", ep, str(e))
         state = load_state()
         state["stage"] = "idle"
         save_state(state)

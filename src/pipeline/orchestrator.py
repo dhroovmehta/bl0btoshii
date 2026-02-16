@@ -209,6 +209,8 @@ async def run_daily_pipeline(bot):
         await post_daily_ideas(idea_channel)
     else:
         print("[Orchestrator] ERROR: #idea-selection channel not found")
+        from src.bot.alerts import notify_error
+        await notify_error(bot, "Daily Pipeline", None, "#idea-selection channel not found")
 
     # The rest of the pipeline is event-driven:
     # - User picks idea → triggers script generation
@@ -249,6 +251,8 @@ async def run_weekly_analytics(bot):
         pub_channel = bot.get_channel(CHANNEL_IDS.get("publishing_log"))
         if pub_channel:
             await pub_channel.send(f"Error generating weekly analytics report: {e}")
+        from src.bot.alerts import notify_error
+        await notify_error(bot, "Weekly Analytics Report", None, str(e))
 
 
 def log_episode_to_index(script):

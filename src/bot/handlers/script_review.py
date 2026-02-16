@@ -98,6 +98,9 @@ async def _revise_and_post_script(edit_notes, bot, channel):
     except Exception as e:
         print(f"[Script Review] Error revising script: {e}")
         await channel.send(f"Error revising script: {e}")
+        from src.bot.alerts import notify_error
+        ep = state.get("current_episode")
+        await notify_error(bot, "Script Revision", ep, str(e))
 
 
 async def _generate_and_post_videos(bot, script_review_channel):
@@ -213,3 +216,6 @@ async def _generate_and_post_videos(bot, script_review_channel):
         state["stage"] = "script_review"
         save_state(state)
         await script_review_channel.send(f"Error generating videos: {e}")
+        from src.bot.alerts import notify_error
+        ep = state.get("current_episode")
+        await notify_error(bot, "Video Generation", ep, str(e))

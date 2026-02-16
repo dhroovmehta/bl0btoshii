@@ -211,7 +211,8 @@ MOOTOSHI SERVER
 ├── #script-review         — Bot posts Notion link to script, you approve/edit
 ├── #video-preview         — Bot posts 2-3 video versions, you pick/edit
 ├── #publishing-log        — Bot logs scheduled metadata, you intervene if needed
-└── #weekly-analytics      — Bot posts Notion link to weekly performance report
+├── #weekly-analytics      — Bot posts Notion link to weekly performance report
+└── #errors                — Bot posts error alerts and startup/restart notifications
 ```
 
 ### 3.3 Bot Implementation: Discord Bot Spec
@@ -602,6 +603,7 @@ mootoshi/
 │   ├── bot/
 │   │   ├── __init__.py
 │   │   ├── bot.py                   # Main Discord bot
+│   │   ├── alerts.py                # Centralized error alerting to #errors channel
 │   │   ├── handlers/
 │   │   │   ├── idea_selection.py    # #idea-selection channel handler
 │   │   │   ├── script_review.py     # #script-review channel handler
@@ -1927,9 +1929,34 @@ quality_gates:
     retry_backoff_seconds: [30, 120, 600]
 ```
 
-### 21.2 Error Handling Pattern
+### 21.2 Error Alerting
 
-Every module uses consistent error handling. Failed stages notify via Discord #publishing-log with the error and suggested action.
+All pipeline errors are sent to a dedicated **#errors** Discord channel via `src/bot/alerts.py`. The centralized `notify_error()` function is wired into every pipeline stage:
+
+| Stage Name | Trigger Location |
+|---|---|
+| Daily Pipeline Trigger | `src/bot/bot.py` — scheduled task exception |
+| Weekly Analytics Trigger | `src/bot/bot.py` — scheduled task exception |
+| Script Generation | `src/bot/handlers/idea_selection.py` — Claude API / generation failure |
+| Script Revision | `src/bot/handlers/script_review.py` — revision failure |
+| Video Generation | `src/bot/handlers/script_review.py` — FFmpeg / variant generation failure |
+| Custom Video Variant | `src/bot/handlers/video_preview.py` — custom variant failure |
+| Google Drive Upload | `src/bot/handlers/video_preview.py` — Drive upload failure |
+| Publishing & Metadata | `src/bot/handlers/video_preview.py` — metadata / platform publish failure |
+| Weekly Analytics Report | `src/pipeline/orchestrator.py` — report generation failure |
+| Daily Pipeline | `src/pipeline/orchestrator.py` — missing channel |
+
+**Startup notifications:** Bot sends "online" message to #errors on every startup/restart.
+
+**Error message format:**
+```
+**Stage Name** Failed
+Episode: `EP002`
+Error: <error description>
+Time: 2026-02-16 21:00:00 UTC
+```
+
+**Design rule:** `notify_error()` and `notify_startup()` never raise — alerting must never crash the bot.
 
 ---
 
@@ -1949,6 +1976,7 @@ DISCORD_CHANNEL_SCRIPT_REVIEW=...
 DISCORD_CHANNEL_VIDEO_PREVIEW=...
 DISCORD_CHANNEL_PUBLISHING_LOG=...
 DISCORD_CHANNEL_WEEKLY_ANALYTICS=...
+DISCORD_CHANNEL_ERRORS=...
 DISCORD_AUTHORIZED_USER_ID=...
 
 # Notion

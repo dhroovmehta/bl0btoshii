@@ -20,6 +20,7 @@ CHANNEL_IDS = {
     "video_preview": int(os.getenv("DISCORD_CHANNEL_VIDEO_PREVIEW", "0")),
     "publishing_log": int(os.getenv("DISCORD_CHANNEL_PUBLISHING_LOG", "0")),
     "weekly_analytics": int(os.getenv("DISCORD_CHANNEL_WEEKLY_ANALYTICS", "0")),
+    "errors": int(os.getenv("DISCORD_CHANNEL_ERRORS", "0")),
 }
 
 # Bot setup with required intents
@@ -41,6 +42,10 @@ async def on_ready():
         status = f"#{channel.name}" if channel else "NOT FOUND"
         print(f"  - {name}: {cid} ({status})")
     print("[Mootoshi Bot] Ready and listening.")
+
+    # Send startup notification to #errors
+    from src.bot.alerts import notify_startup
+    await notify_startup(bot)
 
     # Start scheduled tasks
     if not daily_pipeline_trigger.is_running():
@@ -193,6 +198,8 @@ async def daily_pipeline_trigger():
         await run_daily_pipeline(bot)
     except Exception as e:
         print(f"[Scheduler] Daily pipeline error: {e}")
+        from src.bot.alerts import notify_error
+        await notify_error(bot, "Daily Pipeline Trigger", None, str(e))
 
 
 @daily_pipeline_trigger.before_loop
@@ -209,6 +216,8 @@ async def weekly_analytics_trigger():
         await run_weekly_analytics(bot)
     except Exception as e:
         print(f"[Scheduler] Weekly analytics error: {e}")
+        from src.bot.alerts import notify_error
+        await notify_error(bot, "Weekly Analytics Trigger", None, str(e))
 
 
 @weekly_analytics_trigger.before_loop

@@ -150,6 +150,9 @@ async def _generate_custom_variant(edit_notes, bot, channel):
     except Exception as e:
         print(f"[Video Preview] Error generating custom variant: {e}")
         await channel.send(f"Error generating custom version: {e}")
+        from src.bot.alerts import notify_error
+        ep = state.get("current_episode")
+        await notify_error(bot, "Custom Video Variant", ep, str(e))
 
 
 async def _generate_metadata_and_schedule(bot, video_preview_channel):
@@ -255,6 +258,9 @@ async def _generate_metadata_and_schedule(bot, video_preview_channel):
                 await pub_channel.send(
                     f"**Google Drive upload failed:** {drive_result['error']}"
                 )
+                from src.bot.alerts import notify_error
+                ep = state.get("current_episode")
+                await notify_error(bot, "Google Drive Upload", ep, drive_result["error"])
 
         publish_results = {}
         if video_path and is_safe:
@@ -297,3 +303,6 @@ async def _generate_metadata_and_schedule(bot, video_preview_channel):
     except Exception as e:
         print(f"[Video Preview] Error generating metadata: {e}")
         await video_preview_channel.send(f"Error generating metadata: {e}")
+        from src.bot.alerts import notify_error
+        ep = state.get("current_episode")
+        await notify_error(bot, "Publishing & Metadata", ep, str(e))
