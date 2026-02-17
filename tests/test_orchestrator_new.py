@@ -115,6 +115,46 @@ class TestAssetCheckIntegration:
             assert "asset" in sent_text.lower()
 
     @pytest.mark.asyncio
+    async def test_asset_check_failure_sends_to_errors_channel(self):
+        """Asset check failure must also notify #errors channel."""
+        from src.bot.handlers.script_review import _generate_and_post_videos
+
+        state = {
+            "stage": "video_generating",
+            "current_episode": "EP099",
+            "current_script": {
+                "scenes": [
+                    {
+                        "background": "nonexistent_bg",
+                        "characters_present": ["fakeanimal"],
+                        "character_positions": {"fakeanimal": "center"},
+                        "character_animations": {"fakeanimal": "idle"},
+                        "dialogue": [],
+                        "sfx_triggers": [],
+                    }
+                ],
+                "metadata": {"title": "Test"},
+            },
+        }
+
+        mock_bot = MagicMock()
+        mock_channel = AsyncMock()
+
+        with patch("src.bot.handlers.script_review.load_state", return_value=state), \
+             patch("src.bot.handlers.script_review.save_state"), \
+             patch("src.pipeline.orchestrator.check_asset_availability") as mock_check, \
+             patch("src.bot.alerts.notify_error") as mock_notify:
+            mock_check.return_value = (False, ["backgrounds/nonexistent_bg.png"])
+            await _generate_and_post_videos(mock_bot, mock_channel)
+
+            # Must call notify_error for #errors channel
+            mock_notify.assert_called_once()
+            call_args = mock_notify.call_args
+            assert call_args[0][0] == mock_bot  # bot
+            assert "Asset" in call_args[0][1]   # stage
+            assert "EP099" in call_args[0][2]   # episode_id
+
+    @pytest.mark.asyncio
     async def test_asset_check_allows_when_present(self):
         """When all assets exist, video generation should proceed."""
         from src.bot.handlers.script_review import _generate_and_post_videos

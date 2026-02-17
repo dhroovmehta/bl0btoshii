@@ -130,6 +130,9 @@ async def _generate_and_post_videos(bot, script_review_channel):
             f"**Asset check failed.** Missing assets:\n{missing_list}\n\n"
             f"Add the missing assets, then re-approve the script."
         )
+        from src.bot.alerts import notify_error
+        ep = state.get("current_episode", "Unknown")
+        await notify_error(bot, "Asset Check", ep, f"Missing assets: {', '.join(missing)}")
         state["stage"] = "script_review"
         save_state(state)
         return
