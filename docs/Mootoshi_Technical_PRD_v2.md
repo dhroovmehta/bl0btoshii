@@ -2509,6 +2509,16 @@ Decisions made during implementation that deviate from or extend the original PR
 - **BUG FIX**: `VALID_SFX` and `VALID_MUSIC` in validator were dead code — added actual validation checks.
 - **IMPROVEMENT**: Audio mixer now logs warnings for missing SFX/blip files instead of silent skip.
 
+### 2025-02-17 — Pipeline Reliability Fixes (Silent Failure Elimination)
+
+- **BUG FIX**: All `asyncio.create_task` calls replaced with `safe_task()` wrapper. Exceptions in background tasks (script gen, video gen, metadata/publish) were silently swallowed — now they print to stdout (visible in journalctl) AND send to the originating Discord channel AND #errors.
+- **BUG FIX**: `notify_error()` and `notify_startup()` in `alerts.py` had `except Exception: pass` — alerting failures were invisible. Now prints to stdout: `[Alerting] Failed to send error alert: <error>`.
+- **BUG FIX**: `continuity/engine.py` `_load_json()` crashed with `FileNotFoundError` when `timeline.json`, `running_gags.json`, or `character_growth.json` didn't exist on the VPS. Now returns `{}` for missing files.
+- **FEATURE**: Startup recovery in `bot.py` `on_ready()` — detects stuck pipeline states (`script_generating`, `video_generating`, `publishing`) after a crash/restart and rolls back to the last human-interaction state. Posts recovery notice to #errors.
+- **NEW FILE**: `src/bot/tasks.py` — `safe_task()` function, drop-in replacement for `asyncio.create_task`.
+- **NEW FILE**: `src/bot/recovery.py` — `recover_stuck_state()` function called from `on_ready()`.
+- **TESTS**: 23 new tests in `tests/test_pipeline_reliability.py` covering all fixes. Full suite: 427 passed, 0 failed.
+
 ---
 
 ## End of PRD

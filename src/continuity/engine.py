@@ -13,6 +13,8 @@ GROWTH_FILE = os.path.join(CONTINUITY_DIR, "character_growth.json")
 
 
 def _load_json(path):
+    if not os.path.exists(path):
+        return {}
     with open(path, "r") as f:
         return json.load(f)
 

@@ -43,6 +43,10 @@ async def on_ready():
         print(f"  - {name}: {cid} ({status})")
     print("[Mootoshi Bot] Ready and listening.")
 
+    # Recover from any stuck pipeline state (e.g., video_generating after a crash)
+    from src.bot.recovery import recover_stuck_state
+    await recover_stuck_state(bot)
+
     # Send startup notification to #errors
     from src.bot.alerts import notify_startup
     await notify_startup(bot)
@@ -176,7 +180,8 @@ async def report_command(ctx):
 
     await ctx.send("Generating weekly analytics report...")
     from src.pipeline.orchestrator import run_weekly_analytics
-    asyncio.create_task(run_weekly_analytics(bot))
+    from src.bot.tasks import safe_task
+    safe_task(run_weekly_analytics(bot), bot=bot, stage="Weekly Analytics")
 
 
 @bot.command(name="quality")

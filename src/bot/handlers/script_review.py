@@ -35,14 +35,26 @@ async def handle_script_review(message, bot):
         )
 
         # Trigger video generation in background
-        asyncio.create_task(_generate_and_post_videos(bot, message.channel))
+        from src.bot.tasks import safe_task
+        safe_task(
+            _generate_and_post_videos(bot, message.channel),
+            error_channel=message.channel,
+            bot=bot,
+            stage="Video Generation",
+        )
 
     else:
         # User submitted edit notes — trigger Claude revision
         edit_notes = message.content
         await message.channel.send("Revising script with your notes...")
 
-        asyncio.create_task(_revise_and_post_script(edit_notes, bot, message.channel))
+        from src.bot.tasks import safe_task
+        safe_task(
+            _revise_and_post_script(edit_notes, bot, message.channel),
+            error_channel=message.channel,
+            bot=bot,
+            stage="Script Revision",
+        )
 
 
 async def _revise_and_post_script(edit_notes, bot, channel):

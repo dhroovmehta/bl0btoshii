@@ -64,7 +64,13 @@ async def handle_video_preview(message, bot):
         await message.channel.send(
             f"**{selected.get('name', 'Version 1')}** approved! Generating metadata..."
         )
-        asyncio.create_task(_generate_metadata_and_schedule(bot, message.channel))
+        from src.bot.tasks import safe_task
+        safe_task(
+            _generate_metadata_and_schedule(bot, message.channel),
+            error_channel=message.channel,
+            bot=bot,
+            stage="Publishing & Metadata",
+        )
 
     elif selection is not None:
         # User picked a specific version
@@ -83,12 +89,24 @@ async def handle_video_preview(message, bot):
         await message.channel.send(
             f"**{selected['name']}** selected! Generating metadata..."
         )
-        asyncio.create_task(_generate_metadata_and_schedule(bot, message.channel))
+        from src.bot.tasks import safe_task
+        safe_task(
+            _generate_metadata_and_schedule(bot, message.channel),
+            error_channel=message.channel,
+            bot=bot,
+            stage="Publishing & Metadata",
+        )
 
     elif edit_notes:
         # User wants a custom version — generate it
         await message.channel.send("Generating custom version with your notes...")
-        asyncio.create_task(_generate_custom_variant(edit_notes, bot, message.channel))
+        from src.bot.tasks import safe_task
+        safe_task(
+            _generate_custom_variant(edit_notes, bot, message.channel),
+            error_channel=message.channel,
+            bot=bot,
+            stage="Custom Video Variant",
+        )
 
 
 async def _generate_custom_variant(edit_notes, bot, channel):

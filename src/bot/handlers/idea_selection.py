@@ -120,7 +120,13 @@ async def handle_idea_selection(message, bot):
     await message.channel.send(f"Option {selection + 1} selected. Generating script now...")
 
     # Generate script in background
-    asyncio.create_task(_generate_and_post_script(selected_idea, bot))
+    from src.bot.tasks import safe_task
+    safe_task(
+        _generate_and_post_script(selected_idea, bot),
+        error_channel=message.channel,
+        bot=bot,
+        stage="Script Generation",
+    )
 
 
 async def _generate_and_post_script(idea, bot):

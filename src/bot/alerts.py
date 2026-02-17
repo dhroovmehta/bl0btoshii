@@ -76,9 +76,9 @@ async def notify_error(bot, stage, episode_id, error_message):
 
         msg = format_error_message(stage, episode_id, str(error_message))
         await channel.send(msg)
-    except Exception:
-        # Alerting must never crash the bot
-        pass
+    except Exception as e:
+        # Alerting must never crash the bot, but print so journalctl captures it
+        print(f"[Alerting] Failed to send error alert: {e}")
 
 
 async def notify_startup(bot):
@@ -102,6 +102,6 @@ async def notify_startup(bot):
 
         msg = format_startup_message()
         await channel.send(msg)
-    except Exception:
-        # Alerting must never crash the bot
-        pass
+    except Exception as e:
+        # Alerting must never crash the bot, but print so journalctl captures it
+        print(f"[Alerting] Failed to send startup notification: {e}")
