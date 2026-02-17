@@ -6,14 +6,12 @@
       "background_file": "diner_interior.png",
       "description": "Classic American diner. Counter with stools, booths, neon sign. Menu board in background.",
       "default_music": "main_theme.wav",
+      "ground_zone": {"min_y": 1050, "max_y": 1400},
       "character_positions": {
-        "behind_counter": {"x": 200, "y": 600, "facing": "right"},
-        "stool_1": {"x": 400, "y": 650, "facing": "left"},
-        "stool_2": {"x": 550, "y": 650, "facing": "left"},
-        "stool_3": {"x": 700, "y": 650, "facing": "left"},
-        "booth_left": {"x": 150, "y": 500, "facing": "right"},
-        "booth_right": {"x": 350, "y": 500, "facing": "left"},
-        "door_entrance": {"x": 900, "y": 600, "facing": "left"}
+        "behind_counter": {"x": 820, "y": 1100, "facing": "left"},
+        "stool_1": {"x": 370, "y": 1300, "facing": "right"},
+        "stool_2": {"x": 590, "y": 1300, "facing": "right"},
+        "booth_left": {"x": 150, "y": 1100, "facing": "right"}
       },
       "mood": "warm, cozy, everyday"
     },
@@ -23,11 +21,12 @@
       "background_file": "beach.png",
       "description": "Sandy beach with ocean, palm trees, blue sky.",
       "default_music": "main_theme.wav",
+      "ground_zone": {"min_y": 1100, "max_y": 1480},
       "character_positions": {
-        "left_sand": {"x": 200, "y": 700, "facing": "right"},
-        "right_sand": {"x": 700, "y": 700, "facing": "left"},
-        "water_edge": {"x": 450, "y": 750, "facing": "down"},
-        "under_palm": {"x": 100, "y": 600, "facing": "right"}
+        "water_edge": {"x": 200, "y": 1100, "facing": "right"},
+        "left_sand": {"x": 200, "y": 1420, "facing": "right"},
+        "center_sand": {"x": 500, "y": 1350, "facing": "down"},
+        "right_sand": {"x": 850, "y": 1350, "facing": "left"}
       },
       "mood": "relaxed, bright, adventurous"
     },
@@ -37,10 +36,11 @@
       "background_file": "forest.png",
       "description": "Dense pixel trees, dappled light, mossy ground.",
       "default_music": "tense_theme.wav",
+      "ground_zone": {"min_y": 1400, "max_y": 1480},
       "character_positions": {
-        "clearing_left": {"x": 250, "y": 650, "facing": "right"},
-        "clearing_right": {"x": 650, "y": 650, "facing": "left"},
-        "path_center": {"x": 450, "y": 700, "facing": "down"}
+        "clearing_left": {"x": 250, "y": 1450, "facing": "right"},
+        "clearing_right": {"x": 750, "y": 1450, "facing": "left"},
+        "path_center": {"x": 500, "y": 1480, "facing": "down"}
       },
       "mood": "mysterious, adventurous"
     },
@@ -50,12 +50,11 @@
       "background_file": "town_square.png",
       "description": "Open square with fountain, benches, storefronts.",
       "default_music": "main_theme.wav",
+      "ground_zone": {"min_y": 1200, "max_y": 1480},
       "character_positions": {
-        "bench_left": {"x": 200, "y": 650, "facing": "right"},
-        "bench_right": {"x": 600, "y": 650, "facing": "left"},
-        "fountain_center": {"x": 400, "y": 600, "facing": "down"},
-        "standing_left": {"x": 150, "y": 700, "facing": "right"},
-        "standing_right": {"x": 750, "y": 700, "facing": "left"}
+        "bench_left": {"x": 150, "y": 1350, "facing": "right"},
+        "fountain_center": {"x": 540, "y": 1350, "facing": "down"},
+        "bench_right": {"x": 900, "y": 1350, "facing": "left"}
       },
       "mood": "public, social, daytime"
     },
@@ -65,9 +64,10 @@
       "background_file": "chubs_office.png",
       "description": "Small office with desk, charts on wall, nameplate.",
       "default_music": "main_theme.wav",
+      "ground_zone": {"min_y": 1050, "max_y": 1400},
       "character_positions": {
-        "behind_desk": {"x": 450, "y": 550, "facing": "down"},
-        "visitor_chair": {"x": 450, "y": 750, "facing": "up"}
+        "behind_desk": {"x": 450, "y": 1050, "facing": "down"},
+        "visitor_chair": {"x": 450, "y": 1400, "facing": "up"}
       },
       "mood": "professional, slightly absurd"
     },
@@ -77,9 +77,10 @@
       "background_file": "reows_place.png",
       "description": "Chaotic, eclectic room. Random items everywhere.",
       "default_music": "upbeat_theme.wav",
+      "ground_zone": {"min_y": 1200, "max_y": 1480},
       "character_positions": {
-        "center": {"x": 450, "y": 650, "facing": "down"},
-        "doorway": {"x": 800, "y": 650, "facing": "left"}
+        "center": {"x": 540, "y": 1350, "facing": "down"},
+        "doorway": {"x": 150, "y": 1250, "facing": "right"}
       },
       "mood": "chaotic, eccentric, energetic"
     }

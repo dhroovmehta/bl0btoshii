@@ -59,7 +59,7 @@ def get_character_position(location_id, position_name):
     locations = _load_locations()
     loc = locations.get(location_id, {})
     positions = loc.get("character_positions", {})
-    pos = positions.get(position_name, {"x": 450, "y": 650})
+    pos = positions.get(position_name, {"x": 450, "y": 1300})
     return pos["x"], pos["y"]
 
 

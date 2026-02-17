@@ -155,6 +155,52 @@ class TestAssetCheckIntegration:
             assert "EP099" in call_args[0][2]   # episode_id
 
     @pytest.mark.asyncio
+    async def test_video_generation_timeout_sends_alert(self):
+        """If video generation exceeds timeout, notify_error must be called."""
+        from src.bot.handlers.script_review import _generate_and_post_videos
+
+        state = {
+            "stage": "video_generating",
+            "current_episode": "EP099",
+            "current_script": {
+                "scenes": [
+                    {
+                        "background": "diner_interior",
+                        "characters_present": ["pens"],
+                        "character_positions": {"pens": "stool_1"},
+                        "character_animations": {"pens": "idle"},
+                        "dialogue": [],
+                        "sfx_triggers": [],
+                    }
+                ],
+                "metadata": {"title": "Test"},
+            },
+        }
+
+        mock_bot = MagicMock()
+        mock_channel = AsyncMock()
+
+        with patch("src.bot.handlers.script_review.load_state", return_value=state), \
+             patch("src.bot.handlers.script_review.save_state") as mock_save, \
+             patch("src.pipeline.orchestrator.check_asset_availability", return_value=(True, [])), \
+             patch("src.video_assembler.variant_generator.generate_variants", side_effect=asyncio.TimeoutError()), \
+             patch("src.bot.alerts.notify_error") as mock_notify:
+
+            await _generate_and_post_videos(mock_bot, mock_channel)
+
+            # Must alert on timeout
+            mock_notify.assert_called_once()
+            call_args = mock_notify.call_args
+            assert call_args[0][0] == mock_bot
+            assert "Video Generation" in call_args[0][1]
+            assert "EP099" in call_args[0][2]
+            assert "timed out" in call_args[0][3].lower()
+
+            # State should reset to script_review
+            saved = mock_save.call_args[0][0]
+            assert saved["stage"] == "script_review"
+
+    @pytest.mark.asyncio
     async def test_asset_check_allows_when_present(self):
         """When all assets exist, video generation should proceed."""
         from src.bot.handlers.script_review import _generate_and_post_videos

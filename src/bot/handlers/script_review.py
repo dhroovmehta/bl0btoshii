@@ -137,9 +137,15 @@ async def _generate_and_post_videos(bot, script_review_channel):
         save_state(state)
         return
 
+    # 10-minute timeout for video generation (3 variants × ~2-3 min each)
+    VIDEO_GENERATION_TIMEOUT = 600
+
     try:
         loop = asyncio.get_event_loop()
-        variants = await loop.run_in_executor(None, generate_variants, script, 3)
+        variants = await asyncio.wait_for(
+            loop.run_in_executor(None, generate_variants, script, 3),
+            timeout=VIDEO_GENERATION_TIMEOUT,
+        )
 
         # Run video quality checks on each variant
         quality_warnings = []
@@ -214,6 +220,18 @@ async def _generate_and_post_videos(bot, script_review_channel):
             f"Video variants ready! Check **#video-preview** to review."
         )
 
+    except asyncio.TimeoutError:
+        timeout_msg = (
+            f"Video generation timed out after {VIDEO_GENERATION_TIMEOUT // 60} minutes. "
+            f"The VPS may be under heavy load or FFmpeg may be stuck."
+        )
+        print(f"[Script Review] {timeout_msg}")
+        state["stage"] = "script_review"
+        save_state(state)
+        await script_review_channel.send(f"**Video generation timed out.** Re-approve the script to retry.")
+        from src.bot.alerts import notify_error
+        ep = state.get("current_episode", "Unknown")
+        await notify_error(bot, "Video Generation", ep, timeout_msg)
     except Exception as e:
         print(f"[Script Review] Error generating videos: {e}")
         state["stage"] = "script_review"

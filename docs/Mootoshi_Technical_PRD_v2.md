@@ -682,6 +682,8 @@ mootoshi/
 │   ├── test_continuity.py
 │   ├── test_text_renderer.py
 │   ├── test_video_assembler.py
+│   ├── test_character_positioning.py  # 17 tests: ground zones, frame bounds, overlap, fallback
+│   ├── test_orchestrator_new.py       # Orchestrator + timeout tests
 │   ├── test_metadata.py
 │   ├── test_publisher.py
 │   ├── test_sfx_assets.py
@@ -1006,6 +1008,8 @@ mootoshi/
 
 ### 7.4 locations.json
 
+Each location defines a `ground_zone` (min/max y for character feet placement) and 2-5 named `character_positions` at ground level. Positions are intentionally limited to prevent sprite overlap (sprites are 192x288px at render scale). All y-coordinates target the ground area of the 1080x1920 frame (y=1050-1480), not the sky/upper frame.
+
 ```json
 {
   "locations": {
@@ -1015,14 +1019,12 @@ mootoshi/
       "background_file": "diner_interior.png",
       "description": "Classic American diner. Counter with stools, booths, neon sign. Menu board in background.",
       "default_music": "main_theme.wav",
+      "ground_zone": {"min_y": 1050, "max_y": 1400},
       "character_positions": {
-        "behind_counter": {"x": 200, "y": 600, "facing": "right"},
-        "stool_1": {"x": 400, "y": 650, "facing": "left"},
-        "stool_2": {"x": 550, "y": 650, "facing": "left"},
-        "stool_3": {"x": 700, "y": 650, "facing": "left"},
-        "booth_left": {"x": 150, "y": 500, "facing": "right"},
-        "booth_right": {"x": 350, "y": 500, "facing": "left"},
-        "door_entrance": {"x": 900, "y": 600, "facing": "left"}
+        "behind_counter": {"x": 820, "y": 1100, "facing": "left"},
+        "stool_1": {"x": 370, "y": 1300, "facing": "right"},
+        "stool_2": {"x": 590, "y": 1300, "facing": "right"},
+        "booth_left": {"x": 150, "y": 1100, "facing": "right"}
       },
       "mood": "warm, cozy, everyday"
     },
@@ -1032,11 +1034,12 @@ mootoshi/
       "background_file": "beach.png",
       "description": "Sandy beach with ocean, palm trees, blue sky.",
       "default_music": "main_theme.wav",
+      "ground_zone": {"min_y": 1100, "max_y": 1480},
       "character_positions": {
-        "left_sand": {"x": 200, "y": 700, "facing": "right"},
-        "right_sand": {"x": 700, "y": 700, "facing": "left"},
-        "water_edge": {"x": 450, "y": 750, "facing": "down"},
-        "under_palm": {"x": 100, "y": 600, "facing": "right"}
+        "water_edge": {"x": 200, "y": 1100, "facing": "right"},
+        "left_sand": {"x": 200, "y": 1420, "facing": "right"},
+        "center_sand": {"x": 500, "y": 1350, "facing": "down"},
+        "right_sand": {"x": 850, "y": 1350, "facing": "left"}
       },
       "mood": "relaxed, bright, adventurous"
     },
@@ -1046,10 +1049,11 @@ mootoshi/
       "background_file": "forest.png",
       "description": "Dense pixel trees, dappled light, mossy ground.",
       "default_music": "tense_theme.wav",
+      "ground_zone": {"min_y": 1400, "max_y": 1480},
       "character_positions": {
-        "clearing_left": {"x": 250, "y": 650, "facing": "right"},
-        "clearing_right": {"x": 650, "y": 650, "facing": "left"},
-        "path_center": {"x": 450, "y": 700, "facing": "down"}
+        "clearing_left": {"x": 250, "y": 1450, "facing": "right"},
+        "clearing_right": {"x": 750, "y": 1450, "facing": "left"},
+        "path_center": {"x": 500, "y": 1480, "facing": "down"}
       },
       "mood": "mysterious, adventurous"
     },
@@ -1059,12 +1063,11 @@ mootoshi/
       "background_file": "town_square.png",
       "description": "Open square with fountain, benches, storefronts.",
       "default_music": "main_theme.wav",
+      "ground_zone": {"min_y": 1200, "max_y": 1480},
       "character_positions": {
-        "bench_left": {"x": 200, "y": 650, "facing": "right"},
-        "bench_right": {"x": 600, "y": 650, "facing": "left"},
-        "fountain_center": {"x": 400, "y": 600, "facing": "down"},
-        "standing_left": {"x": 150, "y": 700, "facing": "right"},
-        "standing_right": {"x": 750, "y": 700, "facing": "left"}
+        "bench_left": {"x": 150, "y": 1350, "facing": "right"},
+        "fountain_center": {"x": 540, "y": 1350, "facing": "down"},
+        "bench_right": {"x": 900, "y": 1350, "facing": "left"}
       },
       "mood": "public, social, daytime"
     },
@@ -1074,9 +1077,10 @@ mootoshi/
       "background_file": "chubs_office.png",
       "description": "Small office with desk, charts on wall, nameplate.",
       "default_music": "main_theme.wav",
+      "ground_zone": {"min_y": 1050, "max_y": 1400},
       "character_positions": {
-        "behind_desk": {"x": 450, "y": 550, "facing": "down"},
-        "visitor_chair": {"x": 450, "y": 750, "facing": "up"}
+        "behind_desk": {"x": 450, "y": 1050, "facing": "down"},
+        "visitor_chair": {"x": 450, "y": 1400, "facing": "up"}
       },
       "mood": "professional, slightly absurd"
     },
@@ -1086,9 +1090,10 @@ mootoshi/
       "background_file": "reows_place.png",
       "description": "Chaotic, eclectic room. Random items everywhere.",
       "default_music": "upbeat_theme.wav",
+      "ground_zone": {"min_y": 1200, "max_y": 1480},
       "character_positions": {
-        "center": {"x": 450, "y": 650, "facing": "down"},
-        "doorway": {"x": 800, "y": 650, "facing": "left"}
+        "center": {"x": 540, "y": 1350, "facing": "down"},
+        "doorway": {"x": 150, "y": 1250, "facing": "right"}
       },
       "mood": "chaotic, eccentric, energetic"
     }
@@ -1497,6 +1502,9 @@ ffmpeg -i temp.mp4 -i mixed_audio.wav -c:v copy -c:a aac -shortest output.mp4
 - All sprites must maintain pixel-perfect rendering at any scale
 - Text boxes render over all other layers
 - Simple cuts between scenes (no fancy transitions — NES authentic)
+- **Ground-level positioning:** Character y-coordinates must fall within each location's `ground_zone` (y=1050-1480). Sprites are 192x288px at render scale; positions are spaced to prevent overlap.
+- **Fallback position:** If a position name is not found in `locations.json`, sprite_manager falls back to `{"x": 450, "y": 1300}` (center ground level). See `src/video_assembler/sprite_manager.py`.
+- **Dialogue box clearance:** Character sprites must not overlap the dialogue box area at the bottom of the frame.
 
 ---
 
@@ -1943,7 +1951,7 @@ All pipeline errors are sent to a dedicated **#errors** Discord channel via `src
 | Weekly Analytics Trigger | `src/bot/bot.py` — scheduled task exception |
 | Script Generation | `src/bot/handlers/idea_selection.py` — Claude API / generation failure |
 | Script Revision | `src/bot/handlers/script_review.py` — revision failure |
-| Video Generation | `src/bot/handlers/script_review.py` — FFmpeg / variant generation failure |
+| Video Generation | `src/bot/handlers/script_review.py` — FFmpeg / variant generation failure or 10-minute timeout (`asyncio.wait_for`, 600s). On timeout: alerts #errors, resets stage to `script_review`, notifies user to re-approve. |
 | Custom Video Variant | `src/bot/handlers/video_preview.py` — custom variant failure |
 | Google Drive Upload | `src/bot/handlers/video_preview.py` — Drive upload failure |
 | Publishing & Metadata | `src/bot/handlers/video_preview.py` — metadata / platform publish failure |
@@ -2441,6 +2449,9 @@ Decisions made during implementation that deviate from or extend the original PR
 | 2026-02-16 | **Discord alert with per-platform hashtags** | After Drive upload, a formatted alert with 3-5 trending hashtags per platform is posted to `#publishing-log`. Enables quick copy-paste for manual posting. |
 | 2026-02-16 | **Google OAuth scopes: youtube.upload + drive** | Single set of OAuth credentials (GOOGLE_CLIENT_ID/SECRET/REFRESH_TOKEN) used for both YouTube upload and Google Drive upload. User re-authorized via OAuth Playground to add Drive scope. |
 | 2026-02-16 | **VPS deployment on Hostinger (Ubuntu 24.04)** | Bot deployed as systemd service on existing Hostinger VPS. Auto-restarts on failure. Deployment script: `deploy/setup.sh`. |
+| 2026-02-17 | **Character positioning: sky-to-ground fix** | All `data/locations.json` coordinates moved from sky-level (y=500-750) to ground-level (y=1050-1480). Each location now has a `ground_zone` field defining min/max y for character feet. Positions reduced to 2-5 per location to prevent sprite overlap (sprites are 192x288px). Fallback position in `sprite_manager.py` changed from y=650 to y=1300. |
+| 2026-02-17 | **Video generation 10-minute timeout** | `src/bot/handlers/script_review.py` wraps video generation in `asyncio.wait_for(600s)`. On timeout: alerts #errors, resets stage to `script_review`, notifies user. Prevents stuck pipeline from blocking all episodes. |
+| 2026-02-17 | **Character positioning test suite** | `tests/test_character_positioning.py` (17 tests) covering ground zone validation, frame bounds, dialogue box clearance, anti-stacking overlap detection, fallback position safety, data integrity, and position resolution. Timeout test added to `tests/test_orchestrator_new.py`. |
 
 ---
 
