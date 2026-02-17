@@ -93,13 +93,18 @@ def check_asset_availability(script):
                 if not os.path.exists(sprite_path):
                     missing.append(f"characters/{char_id}/{state}.png")
 
-        # Check SFX
+        # Check SFX (try with .wav extension if not already present)
         for sfx in scene.get("sfx_triggers", []):
             sfx_file = sfx.get("sfx", "")
             if sfx_file:
                 sfx_path = os.path.join(ASSETS_DIR, "sfx", sfx_file)
                 if not os.path.exists(sfx_path):
-                    missing.append(f"sfx/{sfx_file}")
+                    if not sfx_file.endswith(".wav"):
+                        sfx_path_wav = os.path.join(ASSETS_DIR, "sfx", f"{sfx_file}.wav")
+                        if not os.path.exists(sfx_path_wav):
+                            missing.append(f"sfx/{sfx_file}")
+                    else:
+                        missing.append(f"sfx/{sfx_file}")
 
     # Deduplicate
     missing = list(set(missing))

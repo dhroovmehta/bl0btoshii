@@ -683,7 +683,10 @@ mootoshi/
 │   ├── test_text_renderer.py
 │   ├── test_video_assembler.py
 │   ├── test_metadata.py
-│   └── test_publisher.py
+│   ├── test_publisher.py
+│   ├── test_sfx_assets.py
+│   ├── test_alerts.py
+│   └── test_scheduler.py
 │
 ├── output/                          # Final rendered videos
 │
@@ -1810,7 +1813,7 @@ The pipeline runs daily at **9:15 AM ET** (configured in `src/bot/scheduler.py`)
 7. **Notion Publish** — Script published to Notion
 8. **Discord Post** — Bot posts Notion link to #script-review
 9. **WAIT** — Bot waits for your approval (or edit loop)
-10. **Asset Check** — Verify all required sprites, backgrounds, SFX exist
+10. **Asset Check** — Verify all required sprites, backgrounds, SFX exist (SFX names resolve with or without `.wav` extension)
 11. **Video Production** — Text rendering → video assembly → audio mix
 12. **Variant Generation** — Create 2-3 video versions
 13. **Discord Post** — Bot posts video links to #video-preview
