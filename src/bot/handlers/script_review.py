@@ -152,9 +152,9 @@ async def _generate_and_post_videos(bot, script_review_channel):
         save_state(state)
         return
 
-    # 25 min per variant — each scene takes ~5 min on a 1GB VPS,
-    # so a 3-scene episode + endcard + encoding ≈ 17 min per variant.
-    PER_VARIANT_TIMEOUT = 1500
+    # 60 min per variant — at 12 cps typewriter speed, each scene renders
+    # ~3x more frames than at 30 cps. 3 scenes × ~15 min + encoding ≈ 50 min.
+    PER_VARIANT_TIMEOUT = 3600
     VARIANT_COUNT = 3
     variants = []
 
