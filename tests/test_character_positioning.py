@@ -11,6 +11,7 @@ These tests validate locations.json and sprite_manager.py to ensure:
 
 import json
 import os
+from unittest.mock import patch
 
 import pytest
 
@@ -305,3 +306,218 @@ class TestGetCharacterPosition:
         assert isinstance(x, int)
         assert isinstance(y, int)
         assert y <= MAX_POSITION_Y
+
+    def test_fallback_uses_location_ground_zone(self):
+        """Fallback for invalid position should land in the location's ground zone,
+        not a hardcoded global default that may be above the ground."""
+        with open(os.path.join(DATA_DIR, "locations.json"), "r") as f:
+            locations = json.load(f)["locations"]
+
+        for loc_id, loc_data in locations.items():
+            gz = loc_data["ground_zone"]
+            x, y = get_character_position(loc_id, "nonexistent_pos")
+            assert gz["min_y"] <= y <= gz["max_y"], (
+                f"{loc_id}: fallback y={y} is outside ground zone "
+                f"[{gz['min_y']}, {gz['max_y']}]"
+            )
+
+
+# ---------------------------------------------------------------------------
+# 8. LLM prompt includes valid position names
+# ---------------------------------------------------------------------------
+
+class TestPromptIncludesPositions:
+    """The LLM prompt must list valid position names per location
+    so the LLM doesn't hallucinate non-existent position names."""
+
+    def test_prompt_contains_position_names(self):
+        """build_story_prompt must include the location's position names."""
+        from src.story_generator.prompts import build_story_prompt
+
+        idea = {
+            "character_a": "oinks",
+            "character_b": "chubs",
+            "additional_characters": [],
+            "location": "town_square",
+            "situation": "everyday_life",
+            "punchline_type": "deadpan",
+            "trending_tie_in": None,
+            "seasonal_theme": None,
+            "continuity_callbacks": [],
+        }
+        prompt = build_story_prompt(idea, "EP999")
+
+        # The prompt must contain the actual position names from town_square
+        assert "bench_left" in prompt, (
+            "Prompt must include valid position name 'bench_left' for town_square"
+        )
+        assert "fountain_center" in prompt, (
+            "Prompt must include valid position name 'fountain_center' for town_square"
+        )
+        assert "bench_right" in prompt, (
+            "Prompt must include valid position name 'bench_right' for town_square"
+        )
+
+
+# ---------------------------------------------------------------------------
+# 9. Validator catches invalid position names
+# ---------------------------------------------------------------------------
+
+class TestValidatorCatchesBadPositions:
+    """The script validator must reject scripts with position names
+    that don't exist in locations.json."""
+
+    def test_invalid_position_name_flagged(self):
+        """A script using 'center_left' for town_square should fail validation."""
+        from src.story_generator.validator import validate_script
+
+        script = {
+            "episode_id": "EP999",
+            "title": "Test",
+            "slug": "test",
+            "created_at": "2026-01-01T00:00:00Z",
+            "version": 1,
+            "generation_params": {
+                "character_a": "oinks",
+                "character_b": "chubs",
+                "location": "town_square",
+                "situation": "everyday_life",
+                "punchline_type": "deadpan",
+                "trending_tie_in": None,
+                "seasonal_theme": None,
+                "continuity_callbacks": [],
+            },
+            "duration_target_seconds": 35,
+            "scenes": [
+                {
+                    "scene_number": 1,
+                    "duration_seconds": 10,
+                    "background": "town_square",
+                    "characters_present": ["oinks", "chubs"],
+                    "character_positions": {
+                        "oinks": "center_left",
+                        "chubs": "center_right",
+                    },
+                    "action_description": "Test",
+                    "dialogue": [
+                        {"character": "oinks", "text": "Hello", "duration_ms": 2000}
+                    ],
+                }
+            ],
+            "end_card": {"duration_seconds": 3, "text": "Follow!"},
+            "continuity_log": {"events": ["test"], "new_running_gags": [], "character_developments": []},
+            "metadata": {
+                "total_duration_seconds": 13,
+                "characters_featured": ["oinks", "chubs"],
+                "primary_location": "town_square",
+                "content_pillar": "everyday_life",
+                "punchline_type": "deadpan",
+            },
+        }
+
+        is_valid, errors = validate_script(script)
+        position_errors = [e for e in errors if "position" in e.lower()]
+        assert len(position_errors) >= 1, (
+            f"Validator should flag invalid position names 'center_left'/'center_right' "
+            f"for town_square. Got errors: {errors}"
+        )
+
+    def test_valid_position_name_passes(self):
+        """A script using real position names should not get position errors."""
+        from src.story_generator.validator import validate_script
+
+        script = {
+            "episode_id": "EP999",
+            "title": "Test",
+            "slug": "test",
+            "created_at": "2026-01-01T00:00:00Z",
+            "version": 1,
+            "generation_params": {
+                "character_a": "oinks",
+                "character_b": "chubs",
+                "location": "town_square",
+                "situation": "everyday_life",
+                "punchline_type": "deadpan",
+                "trending_tie_in": None,
+                "seasonal_theme": None,
+                "continuity_callbacks": [],
+            },
+            "duration_target_seconds": 35,
+            "scenes": [
+                {
+                    "scene_number": 1,
+                    "duration_seconds": 10,
+                    "background": "town_square",
+                    "characters_present": ["oinks", "chubs"],
+                    "character_positions": {
+                        "oinks": "bench_left",
+                        "chubs": "bench_right",
+                    },
+                    "action_description": "Test",
+                    "dialogue": [
+                        {"character": "oinks", "text": "Hello", "duration_ms": 2000}
+                    ],
+                }
+            ],
+            "end_card": {"duration_seconds": 3, "text": "Follow!"},
+            "continuity_log": {"events": ["test"], "new_running_gags": [], "character_developments": []},
+            "metadata": {
+                "total_duration_seconds": 13,
+                "characters_featured": ["oinks", "chubs"],
+                "primary_location": "town_square",
+                "content_pillar": "everyday_life",
+                "punchline_type": "deadpan",
+            },
+        }
+
+        is_valid, errors = validate_script(script)
+        position_errors = [e for e in errors if "position" in e.lower()]
+        assert len(position_errors) == 0, (
+            f"Valid position names should not trigger errors. Got: {position_errors}"
+        )
+
+
+# ---------------------------------------------------------------------------
+# 10. Anti-overlap at render time
+# ---------------------------------------------------------------------------
+
+class TestRenderTimeAntiOverlap:
+    """When two characters resolve to the same or nearby positions,
+    the renderer must nudge them apart."""
+
+    def test_two_chars_same_fallback_get_separated(self):
+        """Two characters both hitting fallback should NOT get identical coordinates."""
+        from src.video_assembler.sprite_manager import resolve_scene_positions
+
+        positions = resolve_scene_positions(
+            location_id="town_square",
+            characters=["oinks", "chubs"],
+            char_positions={"oinks": "nonexistent", "chubs": "nonexistent"},
+        )
+        oinks_pos = positions["oinks"]
+        chubs_pos = positions["chubs"]
+
+        x_dist = abs(oinks_pos[0] - chubs_pos[0])
+        y_dist = abs(oinks_pos[1] - chubs_pos[1])
+
+        x_clear = x_dist >= MAX_SPRITE_WIDTH
+        y_clear = y_dist >= MAX_SPRITE_HEIGHT
+
+        assert x_clear or y_clear, (
+            f"Two characters at fallback should be separated: "
+            f"oinks={oinks_pos}, chubs={chubs_pos}, "
+            f"x_dist={x_dist}, y_dist={y_dist}"
+        )
+
+    def test_valid_positions_preserved(self):
+        """Characters with valid distinct positions should keep their exact coordinates."""
+        from src.video_assembler.sprite_manager import resolve_scene_positions
+
+        positions = resolve_scene_positions(
+            location_id="town_square",
+            characters=["oinks", "chubs"],
+            char_positions={"oinks": "bench_left", "chubs": "bench_right"},
+        )
+
+        assert positions["oinks"] == (150, 1350)
+        assert positions["chubs"] == (900, 1350)

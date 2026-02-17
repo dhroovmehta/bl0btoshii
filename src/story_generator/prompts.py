@@ -61,9 +61,13 @@ def build_story_prompt(idea, episode_id):
     # Build character names for description
     char_names = " + ".join([characters_data[c]["nickname"] for c in all_chars])
 
-    # Location details
+    # Location details — include valid position names so the LLM doesn't hallucinate
     loc = locations_data[location]
-    loc_desc = f"{loc['name']}: {loc['description']}\nPositions: {json.dumps(loc['character_positions'], indent=2)}"
+    position_names = list(loc["character_positions"].keys())
+    loc_desc = (
+        f"{loc['name']} — {loc['description']}\n"
+        f"Valid character positions: {', '.join(position_names)}"
+    )
 
     # Situation and punchline
     sit = situations_data[situation]
@@ -88,7 +92,7 @@ def build_story_prompt(idea, episode_id):
 
     prompt = template.format(
         characters_description=char_names,
-        location_description=f"{loc['name']} — {loc['description']}",
+        location_description=loc_desc,
         situation_description=f"{sit['name']}: {sit['description']}",
         punchline_description=f"{punch['name']}: {punch['description']}. Execution: {punch['execution']}",
         duration_target=35,

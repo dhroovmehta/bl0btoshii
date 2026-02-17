@@ -72,8 +72,8 @@ Return ONLY valid JSON matching this exact schema. No markdown, no explanation, 
       "background": "{location}",
       "characters_present": ["{character_a}", "{character_b}"],
       "character_positions": {{
-        "{character_a}": "position_name",
-        "{character_b}": "position_name"
+        "{character_a}": "MUST be one of the valid positions listed above",
+        "{character_b}": "MUST be a DIFFERENT valid position from above"
       }},
       "character_animations": {{
         "{character_a}": "sprite_state",
@@ -116,7 +116,7 @@ Return ONLY valid JSON matching this exact schema. No markdown, no explanation, 
 IMPORTANT:
 - Total duration across all scenes + end card must be close to {duration_target} seconds
 - Each dialogue line's duration_ms should reflect realistic reading time at ~20 chars/second
-- Use ONLY character positions defined in the location data
+- Use ONLY the character position names listed in the Location field above. Do NOT invent position names like "center_left" or "right" — use the exact names provided
 - Use ONLY sprite states defined in the character data
 - Use ONLY available SFX files: door_burst, surprise, sip, cash_register, magnifying_glass, menu_select
 - Use ONLY available music: main_theme.wav, tense_theme.wav, upbeat_theme.wav

@@ -46,6 +46,16 @@ def load_sprite(character_id, state="idle"):
     return scaled
 
 
+def _location_fallback(loc):
+    """Pick the first defined position for a location as the fallback.
+    Falls back to (450, 1300) only if the location has no positions at all."""
+    positions = loc.get("character_positions", {})
+    if positions:
+        first = next(iter(positions.values()))
+        return first["x"], first["y"]
+    return 450, 1300
+
+
 def get_character_position(location_id, position_name):
     """Get the pixel coordinates for a character position in a location.
 
@@ -59,8 +69,82 @@ def get_character_position(location_id, position_name):
     locations = _load_locations()
     loc = locations.get(location_id, {})
     positions = loc.get("character_positions", {})
-    pos = positions.get(position_name, {"x": 450, "y": 1300})
-    return pos["x"], pos["y"]
+    pos = positions.get(position_name)
+    if pos:
+        return pos["x"], pos["y"]
+
+    # Invalid position name — fall back to first valid position for this location
+    if position_name and positions:
+        print(f"[Sprite Manager] Warning: position '{position_name}' not found in {location_id}, using fallback")
+    return _location_fallback(loc)
+
+
+MIN_OVERLAP_DISTANCE = 192  # sprite width — characters closer than this overlap
+
+
+def resolve_scene_positions(location_id, characters, char_positions):
+    """Resolve all character positions for a scene, preventing overlap.
+
+    Looks up each character's position name in locations.json.
+    If two characters end up at the same or overlapping coordinates,
+    nudges them to different available positions in the location.
+
+    Args:
+        location_id: e.g., "town_square"
+        characters: list of character IDs present in the scene
+        char_positions: dict mapping character_id → position_name from script
+
+    Returns:
+        Dict mapping character_id → (x, y) tuples.
+    """
+    locations = _load_locations()
+    loc = locations.get(location_id, {})
+    available = loc.get("character_positions", {})
+    available_list = list(available.values())
+
+    resolved = {}
+    used_indices = set()
+
+    # First pass: resolve valid position names
+    for char_id in characters:
+        pos_name = char_positions.get(char_id, "")
+        pos_data = available.get(pos_name)
+        if pos_data:
+            resolved[char_id] = (pos_data["x"], pos_data["y"])
+            # Track which available position was used
+            for i, ap in enumerate(available_list):
+                if ap["x"] == pos_data["x"] and ap["y"] == pos_data["y"]:
+                    used_indices.add(i)
+                    break
+
+    # Second pass: assign unresolved characters to unused positions
+    unresolved = [c for c in characters if c not in resolved]
+    unused = [i for i in range(len(available_list)) if i not in used_indices]
+
+    for char_id in unresolved:
+        if unused:
+            idx = unused.pop(0)
+            pos = available_list[idx]
+            resolved[char_id] = (pos["x"], pos["y"])
+            used_indices.add(idx)
+        elif available_list:
+            # All positions taken — pick the position furthest from already-placed chars
+            best_idx = 0
+            best_min_dist = -1
+            for i, pos in enumerate(available_list):
+                min_dist = min(
+                    (abs(pos["x"] - rx) for rx, ry in resolved.values()),
+                    default=9999,
+                )
+                if min_dist > best_min_dist:
+                    best_min_dist = min_dist
+                    best_idx = i
+            pos = available_list[best_idx]
+            resolved[char_id] = (pos["x"], pos["y"])
+        else:
+            resolved[char_id] = (450, 1300)
+
+    return resolved
 
 
 def composite_character(frame, character_id, state, location_id, position_name):
@@ -71,13 +155,18 @@ def composite_character(frame, character_id, state, location_id, position_name):
         character_id: e.g., "pens"
         state: sprite state
         location_id: e.g., "diner_interior"
-        position_name: e.g., "stool_1"
+        position_name: e.g., "stool_1" or an (x, y) tuple
 
     Returns:
         The frame with the character composited.
     """
     sprite = load_sprite(character_id, state)
-    x, y = get_character_position(location_id, position_name)
+
+    # Accept pre-resolved (x, y) tuple or look up by name
+    if isinstance(position_name, tuple):
+        x, y = position_name
+    else:
+        x, y = get_character_position(location_id, position_name)
 
     # Center the sprite on the position point
     paste_x = x - sprite.width // 2

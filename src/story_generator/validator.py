@@ -55,7 +55,8 @@ def validate_script(script):
     with open(os.path.join(DATA_DIR, "characters.json"), "r") as f:
         valid_chars = list(json.load(f)["characters"].keys())
     with open(os.path.join(DATA_DIR, "locations.json"), "r") as f:
-        valid_locations = list(json.load(f)["locations"].keys())
+        locations_data = json.load(f)["locations"]
+    valid_locations = list(locations_data.keys())
 
     for i, scene in enumerate(scenes):
         scene_label = f"Scene {i + 1}"
@@ -80,6 +81,17 @@ def validate_script(script):
         for c in chars_present:
             if c not in valid_chars:
                 errors.append(f"{scene_label}: unknown character '{c}'")
+
+        # Check character positions are valid for the location
+        scene_positions = scene.get("character_positions", {})
+        if bg and bg in locations_data and scene_positions:
+            valid_pos_names = set(locations_data[bg].get("character_positions", {}).keys())
+            for char_id, pos_name in scene_positions.items():
+                if pos_name not in valid_pos_names:
+                    errors.append(
+                        f"{scene_label}: invalid position '{pos_name}' for {char_id} "
+                        f"in {bg}. Valid positions: {', '.join(sorted(valid_pos_names))}"
+                    )
 
         # Check dialogue
         dialogue = scene.get("dialogue", [])

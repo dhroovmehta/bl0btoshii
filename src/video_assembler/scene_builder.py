@@ -2,7 +2,7 @@
 
 import os
 from PIL import Image
-from src.video_assembler.sprite_manager import composite_character, load_sprite
+from src.video_assembler.sprite_manager import composite_character, load_sprite, resolve_scene_positions
 from src.text_renderer.renderer import render_dialogue_frames
 
 ASSETS_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "assets")
@@ -96,6 +96,11 @@ def build_scene_frames(scene, output_dir, frame_offset=0):
             sfx.get("sfx", "")
         ))
 
+    # Resolve all character positions upfront (validates names + prevents overlap)
+    resolved_positions = resolve_scene_positions(
+        background_id, characters_present, char_positions
+    )
+
     # Generate frames
     for frame_num in range(total_frames):
         # Start with background
@@ -103,7 +108,7 @@ def build_scene_frames(scene, output_dir, frame_offset=0):
 
         # Composite characters
         for char_id in characters_present:
-            position = char_positions.get(char_id, "center")
+            position = resolved_positions.get(char_id, char_positions.get(char_id, "center"))
             animation = char_animations.get(char_id, "idle")
 
             # Check if this character is currently speaking — use talking state
