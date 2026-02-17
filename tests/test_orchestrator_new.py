@@ -156,7 +156,7 @@ class TestAssetCheckIntegration:
 
     @pytest.mark.asyncio
     async def test_video_generation_timeout_sends_alert(self):
-        """If video generation exceeds timeout, notify_error must be called."""
+        """If video generation exceeds per-variant timeout, notify_error must be called."""
         from src.bot.handlers.script_review import _generate_and_post_videos
 
         state = {
@@ -183,7 +183,7 @@ class TestAssetCheckIntegration:
         with patch("src.bot.handlers.script_review.load_state", return_value=state), \
              patch("src.bot.handlers.script_review.save_state") as mock_save, \
              patch("src.pipeline.orchestrator.check_asset_availability", return_value=(True, [])), \
-             patch("src.video_assembler.variant_generator.generate_variants", side_effect=asyncio.TimeoutError()), \
+             patch("src.video_assembler.variant_generator.generate_single_variant", side_effect=asyncio.TimeoutError()), \
              patch("src.bot.alerts.notify_error") as mock_notify:
 
             await _generate_and_post_videos(mock_bot, mock_channel)
@@ -229,11 +229,12 @@ class TestAssetCheckIntegration:
         with patch("src.bot.handlers.script_review.load_state", return_value=state), \
              patch("src.bot.handlers.script_review.save_state"), \
              patch("src.pipeline.orchestrator.check_asset_availability", return_value=(True, [])), \
-             patch("src.video_assembler.variant_generator.generate_variants") as mock_gen, \
+             patch("src.video_assembler.variant_generator.generate_single_variant") as mock_gen, \
              patch("src.pipeline.orchestrator.check_video_quality", return_value=(True, [])):
-            mock_gen.return_value = [
-                {"name": "v1", "description": "Standard", "video_path": "/tmp/v1.mp4", "duration_seconds": 35, "preset": "standard"},
-            ]
+            mock_gen.return_value = {
+                "name": "v1", "description": "Standard", "video_path": "/tmp/v1.mp4",
+                "duration_seconds": 35, "preset": "standard",
+            }
 
             mock_preview_channel = AsyncMock()
             mock_bot.get_channel.return_value = mock_preview_channel
@@ -241,8 +242,8 @@ class TestAssetCheckIntegration:
             with patch("src.bot.bot.CHANNEL_IDS", {"video_preview": 123}):
                 await _generate_and_post_videos(mock_bot, mock_channel)
 
-            # generate_variants should have been called
-            mock_gen.assert_called_once()
+            # generate_single_variant should have been called for each variant
+            assert mock_gen.call_count == 3
 
 
 # ---------------------------------------------------------------------------
@@ -291,20 +292,23 @@ class TestVideoQualityIntegration:
         with patch("src.bot.handlers.script_review.load_state", return_value=state), \
              patch("src.bot.handlers.script_review.save_state"), \
              patch("src.pipeline.orchestrator.check_asset_availability", return_value=(True, [])), \
-             patch("src.video_assembler.variant_generator.generate_variants") as mock_gen, \
+             patch("src.video_assembler.variant_generator.generate_single_variant") as mock_gen, \
              patch("src.pipeline.orchestrator.check_video_quality") as mock_quality, \
              patch("os.path.exists", side_effect=mock_exists), \
              patch("src.bot.bot.CHANNEL_IDS", {"video_preview": 123}):
 
-            mock_gen.return_value = [
-                {"name": "v1", "description": "Standard", "video_path": "/tmp/v1.mp4", "duration_seconds": 35, "preset": "standard"},
-            ]
+            mock_gen.return_value = {
+                "name": "v1", "description": "Standard", "video_path": "/tmp/v1.mp4",
+                "duration_seconds": 35, "preset": "standard",
+            }
             mock_quality.return_value = (False, ["Resolution: 720x1280 (expected 1080x1920)"])
 
-            await _generate_and_post_videos(mock_bot, mock_channel)
+            with patch("os.path.getsize", return_value=1024 * 1024):
+                await _generate_and_post_videos(mock_bot, mock_channel)
 
-            # Quality check should have been called
-            mock_quality.assert_called_once_with("/tmp/v1.mp4")
+            # Quality check called once per variant (3 variants, same mock path)
+            assert mock_quality.call_count == 3
+            mock_quality.assert_any_call("/tmp/v1.mp4")
 
             # Should warn about quality issues in the preview message
             all_sent = " ".join(str(c) for c in mock_preview.send.call_args_list)

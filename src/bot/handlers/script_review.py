@@ -106,13 +106,16 @@ async def _revise_and_post_script(edit_notes, bot, channel):
 async def _generate_and_post_videos(bot, script_review_channel):
     """Generate video variants and post previews to #video-preview.
 
+    Generates variants one at a time so each gets its own timeout and
+    progress messages appear in Discord between renders.
+
     Includes quality gates:
     - Step 10: Asset check before generation (blocks if missing)
     - Video quality check after generation (warns but doesn't block)
     """
     import os
     import discord
-    from src.video_assembler.variant_generator import generate_variants
+    from src.video_assembler.variant_generator import generate_single_variant
     from src.pipeline.orchestrator import check_asset_availability, check_video_quality
 
     state = load_state()
@@ -137,15 +140,32 @@ async def _generate_and_post_videos(bot, script_review_channel):
         save_state(state)
         return
 
-    # 10-minute timeout for video generation (3 variants × ~2-3 min each)
-    VIDEO_GENERATION_TIMEOUT = 600
+    # 25 min per variant — each scene takes ~5 min on a 1GB VPS,
+    # so a 3-scene episode + endcard + encoding ≈ 17 min per variant.
+    PER_VARIANT_TIMEOUT = 1500
+    VARIANT_COUNT = 3
+    variants = []
 
     try:
         loop = asyncio.get_event_loop()
-        variants = await asyncio.wait_for(
-            loop.run_in_executor(None, generate_variants, script, 3),
-            timeout=VIDEO_GENERATION_TIMEOUT,
-        )
+
+        for i in range(VARIANT_COUNT):
+            await script_review_channel.send(
+                f"Rendering variant {i + 1}/{VARIANT_COUNT}..."
+            )
+
+            variant = await asyncio.wait_for(
+                loop.run_in_executor(
+                    None, generate_single_variant, script, i, VARIANT_COUNT
+                ),
+                timeout=PER_VARIANT_TIMEOUT,
+            )
+
+            if variant:
+                variants.append(variant)
+
+        if not variants:
+            raise RuntimeError("No variants were generated.")
 
         # Run video quality checks on each variant
         quality_warnings = []
@@ -221,14 +241,18 @@ async def _generate_and_post_videos(bot, script_review_channel):
         )
 
     except asyncio.TimeoutError:
+        completed = len(variants)
         timeout_msg = (
-            f"Video generation timed out after {VIDEO_GENERATION_TIMEOUT // 60} minutes. "
-            f"The VPS may be under heavy load or FFmpeg may be stuck."
+            f"Video generation timed out on variant {completed + 1}/{VARIANT_COUNT} "
+            f"after 25 minutes. The VPS may be under heavy load or FFmpeg may be stuck."
         )
         print(f"[Script Review] {timeout_msg}")
         state["stage"] = "script_review"
         save_state(state)
-        await script_review_channel.send(f"**Video generation timed out.** Re-approve the script to retry.")
+        await script_review_channel.send(
+            f"**Video generation timed out** on variant {completed + 1}/{VARIANT_COUNT}. "
+            f"Re-approve the script to retry."
+        )
         from src.bot.alerts import notify_error
         ep = state.get("current_episode", "Unknown")
         await notify_error(bot, "Video Generation", ep, timeout_msg)

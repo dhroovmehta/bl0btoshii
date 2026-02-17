@@ -91,6 +91,66 @@ def _get_situation_music(script):
     return SITUATION_MUSIC.get(situation, "main_theme.wav")
 
 
+def generate_single_variant(script, variant_index, count=3):
+    """Generate one video variant by index (0-based). Blocking call.
+
+    Used by the async handler to generate variants one at a time with
+    per-variant timeouts and progress messages.
+
+    Args:
+        script: Approved episode script dict.
+        variant_index: 0-based index into VARIANT_PRESETS.
+        count: Total number of variants being generated (2-3).
+
+    Returns:
+        Dict with variant info, or None if variant_index is out of range.
+    """
+    episode_id = script.get("metadata", {}).get("episode_id", "EP000").lower()
+    count = max(2, min(count, len(VARIANT_PRESETS)))
+    if variant_index >= count:
+        return None
+
+    # Copy preset to avoid mutating the global VARIANT_PRESETS
+    preset = dict(VARIANT_PRESETS[variant_index])
+
+    # Override first variant's music with situation-appropriate default
+    if variant_index == 0:
+        preset["music"] = _get_situation_music(script)
+
+    variant_num = variant_index + 1
+    print(f"[Variants] Generating variant {variant_num}/{count}: {preset['name']}...")
+
+    adjusted_script = _adjust_script_pacing(
+        script,
+        preset["pacing_multiplier"],
+        preset["punchline_hold_seconds"],
+    )
+
+    music_path = os.path.join(ASSETS_DIR, "music", preset["music"])
+    if not os.path.exists(music_path):
+        music_path = os.path.join(ASSETS_DIR, "music", "main_theme.wav")
+
+    output_name = f"{episode_id}_v{variant_num}"
+    video_path = compose_episode(
+        adjusted_script,
+        music_path=music_path,
+        output_name=output_name,
+    )
+
+    total_seconds = sum(
+        s.get("duration_seconds", 8)
+        for s in adjusted_script.get("scenes", [])
+    ) + 3  # +3 for end card
+
+    return {
+        "name": f"Version {variant_num}: {preset['name']}",
+        "description": preset["description"],
+        "video_path": video_path,
+        "duration_seconds": total_seconds,
+        "preset": preset["name"].lower(),
+    }
+
+
 def generate_variants(script, count=3):
     """Generate 2-3 video variants of an episode.
 
