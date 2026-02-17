@@ -2491,6 +2491,26 @@ Decisions made during implementation that deviate from or extend the original PR
 
 ---
 
+## Changelog
+
+### 2025-02-17 — Text Pacing Overhaul
+
+- **BUG FIX**: Typewriter speed was 30 chars/sec instead of intended 20 due to integer division (`30 // 20 = 1` frame per char). Fixed to use float division for accurate timing.
+- **TUNING**: Typewriter speed set to 12 chars/sec (subtitle-standard reading speed). Previously 20 (intended) / 30 (actual).
+- **TUNING**: Text hold time after typewriter completes increased from 0.5s to 2.0s so viewers can actually read the dialogue.
+- **FEATURE**: Scene durations now auto-extend if dialogue needs more time than the script allocated. Prevents text cutoff with the slower typewriter speed.
+- **SYNC**: Audio blip timing in `generate_blip_events()` updated from 20 to 12 chars/sec to match new typewriter speed.
+
+### 2025-02-17 — Positioning & Asset Fixes
+
+- **BUG FIX**: Characters floating in sky — all location positions verified at ground level (y=1050-1480).
+- **BUG FIX**: Storyboard renderer used raw position names instead of `resolve_scene_positions()`.
+- **BUG FIX**: `door_burst.wav` and `menu_select.wav` missing from disk — created from existing SFX.
+- **BUG FIX**: `VALID_SFX` and `VALID_MUSIC` in validator were dead code — added actual validation checks.
+- **IMPROVEMENT**: Audio mixer now logs warnings for missing SFX/blip files instead of silent skip.
+
+---
+
 ## End of PRD
 
 **For Claude Code — build in the exact sequence listed in Section 20.**

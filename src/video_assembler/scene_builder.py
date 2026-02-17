@@ -88,6 +88,13 @@ def build_scene_frames(scene, output_dir, frame_offset=0):
         })
         dialogue_start += line_frames
 
+    # Auto-extend scene duration if dialogue needs more time than the script allocated.
+    # With slower typewriter speed (12 cps) + 2s hold, dialogue often exceeds the original
+    # 8s default. Adding 1s buffer after the last line for breathing room.
+    min_frames_for_dialogue = dialogue_start + FRAME_RATE  # +1s buffer
+    if min_frames_for_dialogue > total_frames:
+        total_frames = min_frames_for_dialogue
+
     # Collect SFX events
     scene_start_ms = (frame_offset / FRAME_RATE) * 1000
     for sfx in sfx_triggers:

@@ -38,7 +38,7 @@ def render_dialogue_frames(
     text,
     output_dir,
     frame_rate=30,
-    chars_per_second=20,
+    chars_per_second=12,
     include_portrait=True,
 ):
     """Render frame-by-frame typewriter animation for a dialogue line.
@@ -88,20 +88,20 @@ def render_dialogue_frames(
     wrapped_lines = _word_wrap(text, font, text_area_width)
 
     # Calculate frames needed for typewriter effect
+    # Use float division to avoid integer rounding bug (30//20=1 → 30cps instead of 20)
     total_chars = sum(len(line) for line in wrapped_lines)
-    frames_per_char = max(1, frame_rate // chars_per_second)
-    typewriter_frames = total_chars * frames_per_char
-    # Hold the full text for 0.5 seconds after typewriter completes
-    hold_frames = frame_rate // 2
+    frames_per_char = frame_rate / chars_per_second  # float: e.g. 30/12 = 2.5
+    typewriter_frames = int(total_chars * frames_per_char)
+    # Hold the full text for 2 seconds after typewriter completes so viewer can read it
+    hold_frames = frame_rate * 2
     total_frames = typewriter_frames + hold_frames
 
     frame_paths = []
-    char_index = 0
 
     for frame_num in range(total_frames):
         # How many characters to show this frame
         if frame_num < typewriter_frames:
-            chars_shown = frame_num // frames_per_char + 1
+            chars_shown = min(total_chars, int(frame_num / frames_per_char) + 1)
         else:
             chars_shown = total_chars
 

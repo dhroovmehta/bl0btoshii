@@ -146,7 +146,7 @@ def generate_blip_events(script, frame_rate=30):
 
         # Dialogue starts 1 second into the scene
         dialogue_offset_ms = 1000
-        chars_per_second = 20
+        chars_per_second = 12
         ms_per_char = 1000.0 / chars_per_second
 
         for line in dialogue:
