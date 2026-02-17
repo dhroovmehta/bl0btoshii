@@ -93,6 +93,25 @@ async def on_message(message):
     await bot.process_commands(message)
 
 
+@bot.event
+async def on_command_error(ctx, error):
+    """Global handler for unhandled command exceptions — sends to #errors."""
+    # Ignore command-not-found (user typos)
+    if isinstance(error, commands.CommandNotFound):
+        return
+
+    print(f"[Mootoshi Bot] Command error in !{ctx.command}: {error}")
+    try:
+        await ctx.send(f"Error running `!{ctx.command}`: {error}")
+    except Exception:
+        pass
+
+    from src.bot.alerts import notify_error
+    await notify_error(
+        bot, f"Command !{ctx.command}", None, str(error)
+    )
+
+
 @bot.command(name="status")
 async def status_command(ctx):
     """Show current pipeline status."""

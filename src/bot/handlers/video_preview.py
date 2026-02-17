@@ -241,8 +241,8 @@ async def _generate_metadata_and_schedule(bot, video_preview_channel):
                     with open(index_path, "r") as f:
                         index = json.load(f)
                     episode_num = index.get("next_episode_number", 1)
-            except Exception:
-                pass
+            except Exception as idx_err:
+                print(f"[Video Preview] Warning: could not read episode index: {idx_err}")
 
             drive_filename = format_drive_filename(episode_num, episode_title)
             drive_result = await loop.run_in_executor(
@@ -269,6 +269,9 @@ async def _generate_metadata_and_schedule(bot, video_preview_channel):
             except Exception as pub_err:
                 print(f"[Video Preview] Publishing error: {pub_err}")
                 publish_results = {"error": str(pub_err)}
+                from src.bot.alerts import notify_error
+                ep = state.get("current_episode")
+                await notify_error(bot, "Platform Publishing", ep, str(pub_err))
 
         # Step 20: Post confirmation
         episode_id = state.get("current_episode", "?")
