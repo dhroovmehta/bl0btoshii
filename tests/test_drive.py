@@ -137,6 +137,7 @@ class TestUploadToDrive:
         "GOOGLE_CLIENT_ID": "test-client-id",
         "GOOGLE_CLIENT_SECRET": "test-client-secret",
         "GOOGLE_REFRESH_TOKEN": "test-refresh-token",
+        "GOOGLE_DRIVE_FOLDER_ID": "",
     })
     def test_missing_folder_id(self):
         result = upload_to_drive("/tmp/test.mp4", "ep0001_test.mp4")
