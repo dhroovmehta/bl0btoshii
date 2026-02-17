@@ -1548,18 +1548,21 @@ Each variant differs along these axes:
 
 ### 15.3 Implementation
 
+Variants are generated one at a time via `generate_single_variant()` so the async handler can apply per-variant timeouts (25 min each) and send progress messages to Discord between renders. The original `generate_variants()` is preserved for batch use but is no longer called by the pipeline.
+
 ```python
-async def generate_variants(
+def generate_single_variant(
     script: dict,
+    variant_index: int,    # 0-based index into VARIANT_PRESETS
     count: int = 3
-) -> list[str]:  # Returns list of video file paths
+) -> dict:  # Returns {"name", "description", "video_path", "duration_seconds", "preset"}
     """
-    Takes an approved script and generates 2-3 video variants.
-    
-    Variant 1: Default — standard pacing, location-default music
-    Variant 2: Alternate music + slightly faster pacing
-    Variant 3: Different music + slower pacing with extended punchline hold
-    
+    Generate one video variant by index. Blocking call.
+
+    Variant 0: Standard — default pacing, situation-matched music
+    Variant 1: Upbeat — faster pacing (0.85x), energetic music
+    Variant 2: Tense — slower pacing (1.15x), extended punchline hold, tense underscore
+
     Each variant is a complete, publishable video.
     """
 ```
@@ -1951,7 +1954,7 @@ All pipeline errors are sent to a dedicated **#errors** Discord channel via `src
 | Weekly Analytics Trigger | `src/bot/bot.py` — scheduled task exception |
 | Script Generation | `src/bot/handlers/idea_selection.py` — Claude API / generation failure |
 | Script Revision | `src/bot/handlers/script_review.py` — revision failure |
-| Video Generation | `src/bot/handlers/script_review.py` — FFmpeg / variant generation failure or 10-minute timeout (`asyncio.wait_for`, 600s). On timeout: alerts #errors, resets stage to `script_review`, notifies user to re-approve. |
+| Video Generation | `src/bot/handlers/script_review.py` — FFmpeg / variant generation failure or per-variant 25-minute timeout (`asyncio.wait_for`, 1500s). Variants generated one at a time with progress messages to Discord. On timeout: alerts #errors, resets stage to `script_review`, notifies user which variant failed. |
 | Custom Video Variant | `src/bot/handlers/video_preview.py` — custom variant failure |
 | Google Drive Upload | `src/bot/handlers/video_preview.py` — Drive upload failure |
 | Publishing & Metadata | `src/bot/handlers/video_preview.py` — metadata / platform publish failure |
@@ -2452,6 +2455,7 @@ Decisions made during implementation that deviate from or extend the original PR
 | 2026-02-17 | **Character positioning: sky-to-ground fix** | All `data/locations.json` coordinates moved from sky-level (y=500-750) to ground-level (y=1050-1480). Each location now has a `ground_zone` field defining min/max y for character feet. Positions reduced to 2-5 per location to prevent sprite overlap (sprites are 192x288px). Fallback position in `sprite_manager.py` changed from y=650 to y=1300. |
 | 2026-02-17 | **Video generation 10-minute timeout** | `src/bot/handlers/script_review.py` wraps video generation in `asyncio.wait_for(600s)`. On timeout: alerts #errors, resets stage to `script_review`, notifies user. Prevents stuck pipeline from blocking all episodes. |
 | 2026-02-17 | **Character positioning test suite** | `tests/test_character_positioning.py` (17 tests) covering ground zone validation, frame bounds, dialogue box clearance, anti-stacking overlap detection, fallback position safety, data integrity, and position resolution. Timeout test added to `tests/test_orchestrator_new.py`. |
+| 2026-02-17 | **Per-variant timeout fix** | 10-min global timeout was too short — each variant takes ~17min on 1GB VPS (3 scenes × ~5min + endcard + encoding). Refactored to generate variants one at a time via `generate_single_variant()` with 25-min per-variant timeout. Progress messages ("Rendering variant 1/3...") sent to Discord between renders. Timeout message now identifies which variant failed. |
 
 ---
 
