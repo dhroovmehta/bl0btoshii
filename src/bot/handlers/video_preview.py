@@ -211,9 +211,6 @@ async def _generate_metadata_and_schedule(bot, video_preview_channel):
         # Get posting schedule
         slots = get_next_posting_slots()
 
-        # Step 21a: Log continuity data from this episode
-        await loop.run_in_executor(None, log_episode, script)
-
         # Store in state
         state["metadata"] = metadata
         state["safety_check"] = {"passed": is_safe, "issues": issues}
@@ -314,8 +311,16 @@ async def _generate_metadata_and_schedule(bot, video_preview_channel):
             f"Check **#publishing-log** for the schedule."
         )
 
-        # Step 21b: Log episode to index
-        await loop.run_in_executor(None, log_episode_to_index, script)
+        # Step 21: Log continuity data + episode index (non-blocking — failures logged but don't block)
+        try:
+            await loop.run_in_executor(None, log_episode, script)
+        except Exception as cont_err:
+            print(f"[Video Preview] Continuity logging failed (non-blocking): {cont_err}")
+
+        try:
+            await loop.run_in_executor(None, log_episode_to_index, script)
+        except Exception as idx_err:
+            print(f"[Video Preview] Episode index logging failed (non-blocking): {idx_err}")
 
         # Mark episode as done
         state["stage"] = "done"
