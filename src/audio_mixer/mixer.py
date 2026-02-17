@@ -96,6 +96,7 @@ def mix_episode_audio(
             sfx_path = os.path.join(sfx_dir, f"{sfx_filename}.wav")
         sfx = _load_audio(sfx_path)
         if sfx is None:
+            print(f"[Audio Mixer] Warning: SFX file not found: {sfx_path}")
             continue
         sfx = sfx.apply_gain(sfx_volume_db)
         # Ensure we don't overlay past the end
@@ -111,6 +112,7 @@ def mix_episode_audio(
             blip_path = os.path.join(sfx_dir, f"{blip_filename}.wav")
         blip = _load_audio(blip_path)
         if blip is None:
+            print(f"[Audio Mixer] Warning: blip file not found: {blip_path}")
             continue
         blip = blip.apply_gain(blip_volume_db)
         if timestamp_ms < len(mix):

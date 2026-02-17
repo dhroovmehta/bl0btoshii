@@ -3,7 +3,7 @@
 import os
 from PIL import Image, ImageDraw, ImageFont
 
-from src.video_assembler.sprite_manager import load_sprite, get_character_position
+from src.video_assembler.sprite_manager import load_sprite, get_character_position, resolve_scene_positions
 from src.video_assembler.scene_builder import load_background
 
 ASSETS_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "assets")
@@ -120,10 +120,12 @@ def _render_scene_thumbnail(scene, label_font, dialogue_font):
     bg = load_background(bg_id)
     thumb = bg.resize((THUMB_WIDTH, THUMB_HEIGHT), Image.NEAREST).convert("RGBA")
 
+    # Resolve positions using the same anti-overlap logic as the video renderer
+    resolved = resolve_scene_positions(bg_id, characters, positions)
+
     # Composite characters (scaled down proportionally)
     scale_factor = THUMB_WIDTH / 1080  # ~0.33x
     for char_id in characters:
-        pos_name = positions.get(char_id, "center")
         sprite = load_sprite(char_id, "idle")
 
         # Scale sprite for thumbnail
@@ -131,8 +133,8 @@ def _render_scene_thumbnail(scene, label_font, dialogue_font):
         s_h = max(1, int(sprite.height * scale_factor))
         small_sprite = sprite.resize((s_w, s_h), Image.NEAREST)
 
-        # Get position and scale it
-        px, py = get_character_position(bg_id, pos_name)
+        # Get resolved position and scale it
+        px, py = resolved.get(char_id, get_character_position(bg_id, positions.get(char_id, "")))
         tx = int(px * scale_factor) - s_w // 2
         ty = int(py * scale_factor) - s_h
 

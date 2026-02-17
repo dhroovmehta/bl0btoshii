@@ -93,6 +93,17 @@ def validate_script(script):
                         f"in {bg}. Valid positions: {', '.join(sorted(valid_pos_names))}"
                     )
 
+        # Check SFX names are valid
+        for sfx in scene.get("sfx_triggers", []):
+            sfx_name = sfx.get("sfx", "")
+            if sfx_name and sfx_name not in VALID_SFX:
+                errors.append(f"{scene_label}: unknown SFX '{sfx_name}'. Valid: {', '.join(s for s in VALID_SFX if not s.startswith('text_blip_'))}")
+
+        # Check music is valid
+        music = scene.get("music", "")
+        if music and music not in VALID_MUSIC:
+            errors.append(f"{scene_label}: unknown music '{music}'. Valid: {', '.join(VALID_MUSIC)}")
+
         # Check dialogue
         dialogue = scene.get("dialogue", [])
         for j, line in enumerate(dialogue):
