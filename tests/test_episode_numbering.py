@@ -2,6 +2,10 @@
 
 Episode numbers should only be assigned on successful publish, not at script generation.
 During generation, episodes use DRAFT-EP-XXX format.
+
+End-to-end contract: DRAFT-EP-XXX at generation → real EP-XXX only on publish.
+Every downstream module must handle DRAFT format without crashing or leaking it
+into published data.
 """
 
 import json
@@ -153,3 +157,132 @@ class TestVariantDraftNaming:
         episode_id = script["metadata"]["episode_id"].lower()
         expected_name = f"{episode_id}_v1"
         assert expected_name == "draft-ep-001_v1"
+
+
+# ---------------------------------------------------------------------------
+# log_episode_to_index must NOT double-increment the counter
+# ---------------------------------------------------------------------------
+
+class TestLogEpisodeToIndexNoIncrement:
+    """log_episode_to_index must not increment next_episode_number.
+
+    assign_episode_number() handles the counter. If log_episode_to_index
+    also increments, the counter advances by 2 per published episode.
+    """
+
+    def test_counter_not_incremented(self):
+        """next_episode_number must be unchanged after log_episode_to_index."""
+        from src.pipeline.orchestrator import log_episode_to_index
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            index_path = os.path.join(tmpdir, "episodes", "index.json")
+            os.makedirs(os.path.dirname(index_path))
+            with open(index_path, "w") as f:
+                json.dump({"next_episode_number": 2, "episodes": []}, f)
+
+            script = {
+                "metadata": {"episode_id": "EP001", "title": "Test"},
+                "scenes": [],
+            }
+
+            with patch("src.pipeline.orchestrator.DATA_DIR", tmpdir):
+                log_episode_to_index(script)
+
+            with open(index_path, "r") as f:
+                data = json.load(f)
+            assert data["next_episode_number"] == 2, \
+                "log_episode_to_index must NOT increment counter (assign_episode_number handles it)"
+
+    def test_episode_appended_to_list(self):
+        """Episode must still be appended to the episodes list."""
+        from src.pipeline.orchestrator import log_episode_to_index
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            index_path = os.path.join(tmpdir, "episodes", "index.json")
+            os.makedirs(os.path.dirname(index_path))
+            with open(index_path, "w") as f:
+                json.dump({"next_episode_number": 2, "episodes": []}, f)
+
+            script = {
+                "metadata": {"episode_id": "EP001", "title": "Test Episode"},
+                "scenes": [],
+            }
+
+            with patch("src.pipeline.orchestrator.DATA_DIR", tmpdir):
+                log_episode_to_index(script)
+
+            with open(index_path, "r") as f:
+                data = json.load(f)
+            assert len(data["episodes"]) == 1
+            assert data["episodes"][0]["episode_id"] == "EP001"
+
+
+# ---------------------------------------------------------------------------
+# Notion publisher must handle DRAFT-EP-XXX without crashing
+# ---------------------------------------------------------------------------
+
+class TestNotionPublisherDraftFormat:
+    """Notion script_publisher must handle DRAFT-EP-XXX episode IDs."""
+
+    def test_draft_id_does_not_crash(self):
+        """_build_properties must not crash on DRAFT-EP-001."""
+        from src.notion.script_publisher import _build_properties
+
+        script_data = {
+            "episode_id": "DRAFT-EP-001",
+            "title": "Test Script",
+            "version": 1,
+            "created_at": "2026-02-17T00:00:00Z",
+            "metadata": {"characters_featured": ["oinks"]},
+            "generation_params": {"situation": "everyday_life"},
+        }
+        props = _build_properties(script_data)
+        assert "title" in props
+
+    def test_draft_id_page_title_shows_draft(self):
+        """Notion page title must include DRAFT prefix for draft episodes."""
+        from src.notion.script_publisher import _build_properties
+
+        script_data = {
+            "episode_id": "DRAFT-EP-001",
+            "title": "Test Script",
+            "version": 1,
+            "created_at": "2026-02-17T00:00:00Z",
+            "metadata": {},
+            "generation_params": {},
+        }
+        props = _build_properties(script_data)
+        page_title = props["title"]["title"][0]["text"]["content"]
+        assert "DRAFT" in page_title
+
+    def test_real_id_page_title_shows_ep_number(self):
+        """Notion page title must show EP # XXX for real episode IDs."""
+        from src.notion.script_publisher import _build_properties
+
+        script_data = {
+            "episode_id": "EP001",
+            "title": "Published Episode",
+            "version": 1,
+            "created_at": "2026-02-17T00:00:00Z",
+            "metadata": {},
+            "generation_params": {},
+        }
+        props = _build_properties(script_data)
+        page_title = props["title"]["title"][0]["text"]["content"]
+        assert "EP # 001" in page_title
+        assert "DRAFT" not in page_title
+
+    def test_draft_episode_number_extracted(self):
+        """Episode number must be correctly extracted from DRAFT-EP-042."""
+        from src.notion.script_publisher import _build_properties
+
+        script_data = {
+            "episode_id": "DRAFT-EP-042",
+            "title": "Test",
+            "version": 1,
+            "created_at": "2026-02-17T00:00:00Z",
+            "metadata": {},
+            "generation_params": {},
+        }
+        props = _build_properties(script_data)
+        assert props["Episode Number"]["number"] == 42

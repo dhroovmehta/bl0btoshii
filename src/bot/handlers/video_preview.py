@@ -268,6 +268,11 @@ async def _generate_metadata_and_schedule(bot, video_preview_channel):
                 # Assign real episode number now that Drive upload succeeded
                 real_episode_id = assign_episode_number()
                 state["current_episode"] = real_episode_id
+                # Update script metadata so downstream (continuity, index) uses real ID
+                script["episode_id"] = real_episode_id
+                if "metadata" in script:
+                    script["metadata"]["episode_id"] = real_episode_id
+                state["current_script"] = script
                 save_state(state)
                 print(f"[Video Preview] Assigned real episode ID: {real_episode_id}")
 

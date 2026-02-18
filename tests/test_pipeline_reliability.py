@@ -372,7 +372,7 @@ class TestLogEpisodeToIndex:
                 assert os.path.exists(index_path)
                 with open(index_path, "r") as f:
                     data = json.load(f)
-                assert data["next_episode_number"] == 2
+                assert data["next_episode_number"] == 1  # Counter managed by assign_episode_number, not here
                 assert len(data["episodes"]) == 1
 
     def test_appends_to_existing_index(self):
@@ -403,5 +403,5 @@ class TestLogEpisodeToIndex:
 
                 with open(index_path, "r") as f:
                     data = json.load(f)
-                assert data["next_episode_number"] == 3
+                assert data["next_episode_number"] == 2  # Counter not incremented here
                 assert len(data["episodes"]) == 2

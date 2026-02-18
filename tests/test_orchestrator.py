@@ -277,8 +277,8 @@ class TestLogEpisodeToIndex:
         assert index["episodes"][0]["title"] == "Test Episode"
         assert index["episodes"][0]["published"] is True
 
-    def test_increments_episode_counter(self, tmp_dir, sample_script):
-        """Should increment next_episode_number."""
+    def test_does_not_increment_episode_counter(self, tmp_dir, sample_script):
+        """Must NOT increment next_episode_number (assign_episode_number handles it)."""
         with patch("src.pipeline.orchestrator.DATA_DIR", tmp_dir):
             log_episode_to_index(sample_script)
             log_episode_to_index(sample_script)
@@ -288,7 +288,7 @@ class TestLogEpisodeToIndex:
             index = json.load(f)
 
         assert len(index["episodes"]) == 2
-        assert index["next_episode_number"] == 3
+        assert index["next_episode_number"] == 1
 
     def test_preserves_existing_episodes(self, tmp_dir, sample_script):
         """Should not overwrite existing episodes when adding new ones."""
@@ -312,7 +312,7 @@ class TestLogEpisodeToIndex:
         assert len(index["episodes"]) == 2
         assert index["episodes"][0]["episode_id"] == "EP001"
         assert index["episodes"][1]["episode_id"] == "EP099"
-        assert index["next_episode_number"] == 6
+        assert index["next_episode_number"] == 5
 
     def test_records_content_parameters(self, tmp_dir, sample_script):
         """Should record characters, situation, punchline, location."""

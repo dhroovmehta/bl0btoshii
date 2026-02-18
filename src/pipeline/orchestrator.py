@@ -290,8 +290,7 @@ def log_episode_to_index(script):
         "published": True,
     })
 
-    # Increment episode counter
-    index["next_episode_number"] = index.get("next_episode_number", 1) + 1
+    # Counter is managed by assign_episode_number() — do NOT increment here
 
     os.makedirs(os.path.dirname(index_path), exist_ok=True)
     with open(index_path, "w") as f:
