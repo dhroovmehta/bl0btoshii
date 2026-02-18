@@ -22,22 +22,43 @@ def _get_client():
 
 
 def _get_next_episode_id():
-    """Get the next episode ID from the index."""
+    """Get a DRAFT episode ID for script generation.
+
+    Returns DRAFT-EP-XXX format. The real EP number is only assigned
+    on successful publish via assign_episode_number().
+    """
     index_path = os.path.join(os.path.dirname(__file__), "..", "..", "data", "episodes", "index.json")
-    with open(index_path, "r") as f:
-        index = json.load(f)
+    if os.path.exists(index_path):
+        with open(index_path, "r") as f:
+            index = json.load(f)
+        num = index.get("next_episode_number", 1)
+    else:
+        num = 1
+    return f"DRAFT-EP-{num:03d}"
+
+
+def assign_episode_number():
+    """Assign the real episode number and increment the counter.
+
+    Called only after successful Drive upload + publish. Returns the
+    real EP ID (e.g., "EP001") and increments next_episode_number.
+    """
+    index_path = os.path.join(os.path.dirname(__file__), "..", "..", "data", "episodes", "index.json")
+    if os.path.exists(index_path):
+        with open(index_path, "r") as f:
+            index = json.load(f)
+    else:
+        index = {"next_episode_number": 1, "episodes": []}
+
     num = index.get("next_episode_number", 1)
-    return f"EP{num:03d}"
+    real_id = f"EP{num:03d}"
 
-
-def _increment_episode_counter():
-    """Increment the episode counter in the index."""
-    index_path = os.path.join(os.path.dirname(__file__), "..", "..", "data", "episodes", "index.json")
-    with open(index_path, "r") as f:
-        index = json.load(f)
-    index["next_episode_number"] = index.get("next_episode_number", 1) + 1
+    index["next_episode_number"] = num + 1
+    os.makedirs(os.path.dirname(index_path), exist_ok=True)
     with open(index_path, "w") as f:
         json.dump(index, f, indent=2)
+
+    return real_id
 
 
 def generate_episode(idea, max_retries=3):
@@ -81,13 +102,11 @@ def generate_episode(idea, max_retries=3):
             is_valid, errors = validate_script(script)
 
             if is_valid:
-                _increment_episode_counter()
                 return script, []
             else:
                 print(f"[Story Engine] Attempt {attempt + 1}: validation errors: {errors}")
                 if attempt == max_retries - 1:
                     # Return with warnings on last attempt
-                    _increment_episode_counter()
                     return script, errors
 
         except json.JSONDecodeError as e:

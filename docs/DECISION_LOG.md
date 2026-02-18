@@ -4,6 +4,28 @@ Architectural and design decisions made during development.
 
 ---
 
+## D-009: Increase PER_VARIANT_TIMEOUT to 60 minutes (2026-02-17)
+
+**Context:** After the 12 cps pacing fix, each scene generates ~3x more frames. On the 1GB VPS, Pillow frame-by-frame rendering takes 8-15 min per scene. With 3 scenes, a single variant can take 45+ minutes.
+
+**Decision:** Increased `PER_VARIANT_TIMEOUT` from 1500 (25 min) to 3600 (60 min). 3 variants × 60 min = 3 hours max total generation time.
+
+**Trade-off:** Longer before a truly stuck generation is detected. Acceptable because safe_task + notify_error now surface actual errors immediately — the timeout is only a last-resort safety net.
+
+---
+
+## D-008: DRAFT episode numbering — assign on publish, not generation (2026-02-17)
+
+**Context:** Episode counter incremented during `generate_episode()`. Every script attempt (including failures, edits, and abandoned episodes) consumed a number. After 2 scripts and 0 publishes, counter was at 3.
+
+**Decision:** Two-phase numbering:
+1. Script generation: `_get_next_episode_id()` returns `DRAFT-EP-{num:03d}` — peeks at counter without incrementing
+2. Publish: `assign_episode_number()` returns `EP{num:03d}` and increments counter — called only after successful Google Drive upload
+
+**Alternative considered:** Assigning the number before upload and rolling back on failure. Rejected because rollback logic adds complexity and the single-process pipeline ensures no race conditions with the peek-then-assign approach.
+
+---
+
 ## D-007: Move continuity logging after Drive upload (2025-02-17)
 
 **Context:** `log_episode()` was called before Drive upload in `_generate_metadata_and_schedule()`. If continuity files were missing or corrupted, it crashed the entire function before Drive upload could execute.

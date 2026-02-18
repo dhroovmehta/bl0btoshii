@@ -6,6 +6,18 @@ All diagnosed issues, their root causes, and resolution status.
 
 ## Resolved Issues
 
+### ISS-009: Video generation timeout too tight after pacing fix (2026-02-17)
+**Severity:** High — variant 1/3 killed before completion
+**Root Cause:** `PER_VARIANT_TIMEOUT = 1500` (25 min) was set before the 12 cps pacing fix tripled frame count. 3 scenes × 15 min = 45 min > 25 min.
+**Fix:** Increased to `PER_VARIANT_TIMEOUT = 3600` (60 min per variant).
+**Status:** RESOLVED
+
+### ISS-008: Episode counter increments at script gen, not publish (2026-02-17)
+**Severity:** High — counter drifts with every script attempt, real EP numbers never match
+**Root Cause:** `_increment_episode_counter()` called inside `generate_episode()`. Every script gen (including failures/abandons) consumed a number. 2 scripts, 0 publishes → counter at 3.
+**Fix:** Removed `_increment_episode_counter()`. Scripts use `DRAFT-EP-XXX` format. Real `EP001` assigned by `assign_episode_number()` only after successful Google Drive upload.
+**Status:** RESOLVED
+
 ### ISS-007: data/episodes/index.json and data/continuity/ may not exist (2025-02-17)
 **Severity:** High — crashes pipeline on fresh VPS deploy
 **Root Cause:** Multiple `json.load()` / `open()` calls assume files exist

@@ -190,6 +190,7 @@ async def _generate_metadata_and_schedule(bot, video_preview_channel):
     from src.publisher.drive import upload_to_drive, format_drive_filename, format_publishing_alert
     from src.continuity.engine import log_episode
     from src.pipeline.orchestrator import log_episode_to_index
+    from src.story_generator.engine import assign_episode_number
     from src.bot.bot import CHANNEL_IDS
 
     state = load_state()
@@ -242,10 +243,9 @@ async def _generate_metadata_and_schedule(bot, video_preview_channel):
 
         # Upload selected video to Google Drive
         if video_path:
-            episode_id = state.get("current_episode", "?")
             episode_title = script.get("metadata", {}).get("title", "Untitled")
 
-            # Get episode number from index
+            # Peek at next episode number for Drive filename (don't increment yet)
             episode_num = 1
             try:
                 import json
@@ -265,6 +265,12 @@ async def _generate_metadata_and_schedule(bot, video_preview_channel):
             )
 
             if drive_result["success"]:
+                # Assign real episode number now that Drive upload succeeded
+                real_episode_id = assign_episode_number()
+                state["current_episode"] = real_episode_id
+                save_state(state)
+                print(f"[Video Preview] Assigned real episode ID: {real_episode_id}")
+
                 alert_msg = format_publishing_alert(
                     drive_filename, drive_result["file_url"], metadata
                 )
