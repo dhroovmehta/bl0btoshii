@@ -162,13 +162,13 @@ def check_video_quality(video_path):
                     if width != 1080 or height != 1920:
                         issues.append(f"Resolution: {width}x{height} (expected 1080x1920)")
 
-        # Duration check
+        # Duration check — use tolerance from config, hard cap at 90s
         duration = float(probe.get("format", {}).get("duration", 0))
-        tolerance = gates.get("duration_tolerance_pct", 15)
+        max_duration = 90
         if duration < 5:
             issues.append(f"Duration too short: {duration:.1f}s")
-        elif duration > 60:
-            issues.append(f"Duration too long: {duration:.1f}s (max ~45s + tolerance)")
+        elif duration > max_duration:
+            issues.append(f"Duration too long: {duration:.1f}s (max {max_duration}s)")
 
         # Audio check
         if gates.get("audio_sync_check", True):

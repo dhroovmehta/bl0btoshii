@@ -219,14 +219,26 @@ def log_episode(script):
 
     developments = continuity_log.get("character_developments", [])
     for dev in developments:
-        char_id = dev.get("character", "")
-        if char_id not in char_growth:
-            char_growth[char_id] = {"developments": []}
-        char_growth[char_id]["developments"].append({
-            "episode_id": episode_id,
-            "development": dev.get("development", ""),
-            "personality_impact": dev.get("impact", ""),
-        })
+        # Handle both dict format ({"character": "x", "development": "y"})
+        # and string format ("Any character growth moments") from template
+        if isinstance(dev, str):
+            # String format — log under "unknown" character
+            if "unknown" not in char_growth:
+                char_growth["unknown"] = {"developments": []}
+            char_growth["unknown"]["developments"].append({
+                "episode_id": episode_id,
+                "development": dev,
+                "personality_impact": "",
+            })
+        else:
+            char_id = dev.get("character", "")
+            if char_id not in char_growth:
+                char_growth[char_id] = {"developments": []}
+            char_growth[char_id]["developments"].append({
+                "episode_id": episode_id,
+                "development": dev.get("development", ""),
+                "personality_impact": dev.get("impact", ""),
+            })
 
     growth_data["character_growth"] = char_growth
     _save_json(GROWTH_FILE, growth_data)

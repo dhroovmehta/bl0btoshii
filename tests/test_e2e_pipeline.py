@@ -999,3 +999,36 @@ class TestIssueLog_BugsFound:
                 "No running gags saved! continuity/engine.py is reading the wrong key "
                 "from continuity_log. Template outputs 'new_running_gags', engine reads 'new_gags'."
             )
+
+    def test_continuity_engine_handles_string_character_developments(self):
+        """BUG: Template tells Claude to return character_developments as strings,
+        but engine.py:222 calls dev.get("character") which crashes on strings.
+
+        Template line 105: "character_developments": ["Any character growth moments"]
+        Engine line 222:   char_id = dev.get("character", "")
+
+        When Claude returns ["Reows showed empathy"], dev is a string, and
+        str.get() raises AttributeError.
+
+        Fix: Engine must handle both string and dict formats.
+        """
+        from src.continuity.engine import log_episode
+        script = _make_test_script("EP001")
+        script["episode_id"] = "EP001"
+        # Simulate Claude returning character_developments as plain strings
+        # (matches template format on line 105)
+        script["continuity_log"]["character_developments"] = [
+            "Reows showed empathy toward Oinks",
+            "Oinks learned to share donuts",
+        ]
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            timeline_path = os.path.join(tmpdir, "timeline.json")
+            gags_path = os.path.join(tmpdir, "gags.json")
+            growth_path = os.path.join(tmpdir, "growth.json")
+
+            with patch("src.continuity.engine.TIMELINE_FILE", timeline_path), \
+                 patch("src.continuity.engine.GAGS_FILE", gags_path), \
+                 patch("src.continuity.engine.GROWTH_FILE", growth_path):
+                # This should NOT crash
+                log_episode(script)
