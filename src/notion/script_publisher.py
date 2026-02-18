@@ -41,14 +41,21 @@ def _build_properties(script_data):
     """
     episode_id = script_data.get("episode_id", "EP001")
     title = script_data.get("title", "Untitled")
-    episode_num = int(episode_id.replace("EP", ""))
+    # Extract episode number from both DRAFT-EP-XXX and EPXXX formats
+    import re
+    num_match = re.search(r"(\d+)$", episode_id)
+    episode_num = int(num_match.group(1)) if num_match else 0
+    is_draft = episode_id.startswith("DRAFT")
     version = script_data.get("version", 1)
     date_str = script_data.get("created_at", datetime.utcnow().isoformat())
     date_parsed = datetime.fromisoformat(date_str.replace("Z", "+00:00"))
     date_display = date_parsed.strftime("%b %d, %Y")
 
-    # Page title: EP # XXX | Title | Date
-    page_title = f"EP # {episode_num:03d} | {title} | {date_display}"
+    # Page title: DRAFT-EP-XXX or EP # XXX | Title | Date
+    if is_draft:
+        page_title = f"{episode_id} | {title} | {date_display}"
+    else:
+        page_title = f"EP # {episode_num:03d} | {title} | {date_display}"
     if version > 1:
         page_title += f" (v{version})"
 
