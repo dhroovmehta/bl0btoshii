@@ -140,7 +140,7 @@ async def _generate_custom_variant(edit_notes, bot, channel):
 
         # Post the custom version
         episode_id = state.get("current_episode", "?")
-        title = script.get("metadata", {}).get("title", script.get("title", "Untitled"))
+        title = script.get("title", "Untitled")
         custom_idx = len(variants)
 
         await channel.send(
@@ -243,7 +243,7 @@ async def _generate_metadata_and_schedule(bot, video_preview_channel):
 
         # Upload selected video to Google Drive
         if video_path:
-            episode_title = script.get("metadata", {}).get("title", "Untitled")
+            episode_title = script.get("title", "Untitled")
 
             # Peek at next episode number for Drive filename (don't increment yet)
             episode_num = 1

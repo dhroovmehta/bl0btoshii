@@ -210,7 +210,7 @@ async def _generate_and_post_videos(bot, script_review_channel):
             return
 
         episode_id = state.get("current_episode", "?")
-        title = script.get("metadata", {}).get("title", script.get("title", "Untitled"))
+        title = script.get("title", "Untitled")
 
         preview_msg = f"**Video Preview — {episode_id}: {title}**\n\n"
         for i, v in enumerate(variants):

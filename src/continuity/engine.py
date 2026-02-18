@@ -166,7 +166,7 @@ def log_episode(script):
     events = timeline_data.get("events", [])
 
     # Extract events from continuity_log
-    new_events = continuity_log.get("events_to_track", [])
+    new_events = continuity_log.get("events", [])
     for event_text in new_events:
         # Determine location from first scene
         scenes = script.get("scenes", [])
@@ -190,7 +190,7 @@ def log_episode(script):
     gags_data = _load_json(GAGS_FILE)
     gags = gags_data.get("running_gags", [])
 
-    new_gags = continuity_log.get("new_gags", [])
+    new_gags = continuity_log.get("new_running_gags", [])
     for gag in new_gags:
         gags.append({
             "id": gag.get("id", f"gag_{episode_id}"),
