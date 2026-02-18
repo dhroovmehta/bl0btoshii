@@ -120,9 +120,8 @@ def compose_episode(script, music_path=None, output_name=None):
     Returns:
         Path to the final MP4 file.
     """
-    metadata = script.get("metadata", {})
-    episode_id = metadata.get("episode_id", "EP000")
-    title = metadata.get("title", "Untitled Episode")
+    episode_id = script.get("episode_id", "EP000")
+    title = script.get("title", "Untitled Episode")
     scenes = script.get("scenes", [])
 
     if output_name is None:

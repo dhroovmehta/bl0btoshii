@@ -61,9 +61,8 @@ def render_storyboard(script, output_dir):
     draw = ImageDraw.Draw(storyboard)
 
     # Draw title
-    metadata = script.get("metadata", {})
-    episode_id = metadata.get("episode_id", "?")
-    title = metadata.get("title", "Untitled")
+    episode_id = script.get("episode_id", "?")
+    title = script.get("title", "Untitled")
     title_text = f"{episode_id}: {title}"
     draw.text((PADDING, PADDING), title_text, fill=TEXT_COLOR, font=label_font)
 

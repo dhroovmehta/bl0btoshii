@@ -154,8 +154,8 @@ def log_episode(script):
         script: The full episode script dict.
     """
     metadata = script.get("metadata", {})
-    episode_id = metadata.get("episode_id", "?")
-    title = metadata.get("title", "Untitled")
+    episode_id = script.get("episode_id", "?")
+    title = script.get("title", "Untitled")
     characters_featured = metadata.get("characters_featured", [])
     continuity_log = script.get("continuity_log", {})
 

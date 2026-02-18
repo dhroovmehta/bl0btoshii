@@ -46,8 +46,8 @@ def generate_metadata(script):
     char_names = _load_characters()
 
     metadata = script.get("metadata", {})
-    title = metadata.get("title", "Untitled")
-    episode_id = metadata.get("episode_id", "EP000")
+    title = script.get("title", "Untitled")
+    episode_id = script.get("episode_id", "EP000")
     characters_featured = metadata.get("characters_featured", [])
 
     # Build character name string for descriptions

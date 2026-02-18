@@ -149,12 +149,13 @@ class TestVariantDraftNaming:
         from src.video_assembler.variant_generator import generate_single_variant
 
         script = {
-            "metadata": {"episode_id": "DRAFT-EP-001", "title": "Test"},
+            "episode_id": "DRAFT-EP-001",
+            "title": "Test",
+            "metadata": {},
             "scenes": [],
         }
-        # The output_name is constructed from episode_id.lower()
-        # We just verify the metadata flows through
-        episode_id = script["metadata"]["episode_id"].lower()
+        # The output_name is constructed from script.get("episode_id").lower()
+        episode_id = script["episode_id"].lower()
         expected_name = f"{episode_id}_v1"
         assert expected_name == "draft-ep-001_v1"
 
@@ -181,7 +182,9 @@ class TestLogEpisodeToIndexNoIncrement:
                 json.dump({"next_episode_number": 2, "episodes": []}, f)
 
             script = {
-                "metadata": {"episode_id": "EP001", "title": "Test"},
+                "episode_id": "EP001",
+                "title": "Test",
+                "metadata": {},
                 "scenes": [],
             }
 
@@ -204,7 +207,9 @@ class TestLogEpisodeToIndexNoIncrement:
                 json.dump({"next_episode_number": 2, "episodes": []}, f)
 
             script = {
-                "metadata": {"episode_id": "EP001", "title": "Test Episode"},
+                "episode_id": "EP001",
+                "title": "Test Episode",
+                "metadata": {},
                 "scenes": [],
             }
 

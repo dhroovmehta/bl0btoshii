@@ -280,13 +280,13 @@ def log_episode_to_index(script):
     metadata = script.get("metadata", {})
 
     index["episodes"].append({
-        "episode_id": metadata.get("episode_id", "?"),
-        "title": metadata.get("title", "Untitled"),
+        "episode_id": script.get("episode_id", "?"),
+        "title": script.get("title", "Untitled"),
         "characters_featured": metadata.get("characters_featured", []),
         "situation": metadata.get("situation_type", ""),
         "punchline_type": metadata.get("punchline_type", ""),
         "location": metadata.get("location", ""),
-        "created_at": metadata.get("created_at", ""),
+        "created_at": script.get("created_at", ""),
         "published": True,
     })
 

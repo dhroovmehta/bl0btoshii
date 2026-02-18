@@ -105,7 +105,7 @@ def generate_single_variant(script, variant_index, count=3):
     Returns:
         Dict with variant info, or None if variant_index is out of range.
     """
-    episode_id = script.get("metadata", {}).get("episode_id", "EP000").lower()
+    episode_id = script.get("episode_id", "EP000").lower()
     count = max(2, min(count, len(VARIANT_PRESETS)))
     if variant_index >= count:
         return None
@@ -166,7 +166,7 @@ def generate_variants(script, count=3):
         List of dicts with variant info:
         [{"name": str, "description": str, "video_path": str, "duration_seconds": int}]
     """
-    episode_id = script.get("metadata", {}).get("episode_id", "EP000").lower()
+    episode_id = script.get("episode_id", "EP000").lower()
     count = max(2, min(count, len(VARIANT_PRESETS)))
     presets = VARIANT_PRESETS[:count]
 
@@ -269,7 +269,7 @@ def generate_custom_variant(script, edit_notes, existing_variants):
         music_path = os.path.join(ASSETS_DIR, "music", "main_theme.wav")
 
     # Compose custom version
-    episode_id = script.get("metadata", {}).get("episode_id", "EP000").lower()
+    episode_id = script.get("episode_id", "EP000").lower()
     output_name = f"{episode_id}_custom"
 
     print(f"[Variants] Generating custom variant: music={music}, pacing={pacing}...")
