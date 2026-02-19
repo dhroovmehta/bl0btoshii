@@ -138,7 +138,7 @@ class TestCheckVideoQuality:
         assert any("too small" in issue for issue in issues)
 
     def test_wrong_resolution(self, tmp_dir):
-        """Should flag incorrect resolution."""
+        """Should flag incorrect resolution (not 1920x1080 or 1080x1920)."""
         video_file = os.path.join(tmp_dir, "wrong_res.mp4")
         # Create a file larger than min size
         with open(video_file, "wb") as f:
@@ -149,7 +149,7 @@ class TestCheckVideoQuality:
                 returncode=0,
                 stdout=json.dumps({
                     "streams": [
-                        {"codec_type": "video", "width": 1920, "height": 1080},
+                        {"codec_type": "video", "width": 640, "height": 480},
                         {"codec_type": "audio"},
                     ],
                     "format": {"duration": "35.0"},
@@ -158,7 +158,7 @@ class TestCheckVideoQuality:
             passed, issues = check_video_quality(video_file)
 
         assert passed is False
-        assert any("1920x1080" in issue for issue in issues)
+        assert any("640x480" in issue for issue in issues)
 
     def test_duration_too_short(self, tmp_dir):
         """Should flag videos that are too short."""

@@ -134,14 +134,11 @@ def sample_ideas():
 
 @pytest.fixture
 def default_state():
-    """The expected default pipeline state."""
+    """The expected default pipeline state (v2)."""
     return {
         "current_episode": None,
         "stage": "idle",
         "ideas": [],
         "selected_idea_index": None,
-        "script_notion_url": None,
-        "script_version": 1,
-        "video_variants": [],
-        "selected_video_index": None,
+        "current_script": None,
     }

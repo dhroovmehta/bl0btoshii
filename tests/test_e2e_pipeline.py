@@ -454,31 +454,37 @@ class TestStage6_SceneFrameBuilding:
     """
 
     def test_builds_frames_for_scene(self):
-        from src.video_assembler.scene_builder import build_scene_frames
+        """v2: build_scene_frames returns (frame_iter, total_frames, sfx_events)."""
+        from src.video_assembler.scene_builder import build_scene_frames, FRAME_WIDTH, FRAME_HEIGHT
+        from PIL import Image
         script = _make_test_script()
         scene = script["scenes"][0]
 
-        with tempfile.TemporaryDirectory() as tmpdir:
-            frame_paths, sfx_events, blip_events = build_scene_frames(
-                scene, tmpdir, frame_offset=0
-            )
-            assert len(frame_paths) > 0
-            # At 30fps, 10 seconds = 300 frames minimum
-            # (dialogue frames may add more)
-            assert len(frame_paths) >= 100  # Conservative lower bound
-            # Check first frame exists
-            assert os.path.exists(frame_paths[0])
+        frame_iter, total_frames, sfx_events = build_scene_frames(
+            scene, frame_offset=0
+        )
+        assert total_frames > 0
+        # At 30fps, 10 seconds = 300 frames minimum (dialogue may add more)
+        assert total_frames >= 100  # Conservative lower bound
+        # Check first frame is a PIL Image at correct size
+        first_frame = next(frame_iter)
+        assert isinstance(first_frame, Image.Image)
+        assert first_frame.size == (FRAME_WIDTH, FRAME_HEIGHT)
 
-    def test_frame_files_are_png(self):
+    def test_frames_are_pil_images(self):
+        """v2: frame iterator yields PIL Images, not file paths."""
         from src.video_assembler.scene_builder import build_scene_frames
+        from PIL import Image
         script = _make_test_script()
         scene = script["scenes"][0]
 
-        with tempfile.TemporaryDirectory() as tmpdir:
-            frame_paths, _, _ = build_scene_frames(scene, tmpdir, frame_offset=0)
-            for path in frame_paths[:3]:  # Check first 3
-                assert path.endswith(".png")
-                assert os.path.getsize(path) > 0
+        frame_iter, total_frames, _ = build_scene_frames(scene, frame_offset=0)
+        # Check first 3 frames
+        for i, frame in enumerate(frame_iter):
+            assert isinstance(frame, Image.Image)
+            assert frame.mode == "RGB"
+            if i >= 2:
+                break
 
 
 # ===================================================================

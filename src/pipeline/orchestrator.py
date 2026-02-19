@@ -14,6 +14,53 @@ ASSETS_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "assets")
 DATA_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "data")
 
 
+def collect_rendering_warnings():
+    """Collect all warnings from rendering modules after video generation.
+
+    Aggregates warnings from sprite_manager, scene_builder, and audio_mixer.
+    Call this after video generation to check if any fallbacks were used.
+
+    Returns:
+        List of warning strings. Empty list means no issues.
+    """
+    warnings = []
+    try:
+        from src.video_assembler.sprite_manager import get_warnings as sprite_warnings
+        warnings.extend(sprite_warnings())
+    except ImportError:
+        pass
+    try:
+        from src.video_assembler.scene_builder import get_warnings as scene_warnings
+        warnings.extend(scene_warnings())
+    except ImportError:
+        pass
+    try:
+        from src.audio_mixer.mixer import get_warnings as audio_warnings
+        warnings.extend(audio_warnings())
+    except ImportError:
+        pass
+    return warnings
+
+
+def clear_all_rendering_warnings():
+    """Clear warnings in all rendering modules. Call before starting a new render."""
+    try:
+        from src.video_assembler.sprite_manager import clear_warnings as clear_sprite
+        clear_sprite()
+    except ImportError:
+        pass
+    try:
+        from src.video_assembler.scene_builder import clear_warnings as clear_scene
+        clear_scene()
+    except ImportError:
+        pass
+    try:
+        from src.audio_mixer.mixer import clear_warnings as clear_audio
+        clear_audio()
+    except ImportError:
+        pass
+
+
 def run_with_retry(func, max_retries=3, backoff_seconds=None, args=None,
                    kwargs=None, raise_on_failure=True, error_log=None):
     """Run a function with retry logic and configurable backoff.
@@ -80,11 +127,13 @@ def check_asset_availability(script):
     scenes = script.get("scenes", [])
 
     for scene in scenes:
-        # Check background
+        # Check background — accept either folder (parallax) or single file
         bg_id = scene.get("background", "")
-        bg_path = os.path.join(ASSETS_DIR, "backgrounds", f"{bg_id}.png")
-        if bg_id and not os.path.exists(bg_path):
-            missing.append(f"backgrounds/{bg_id}.png")
+        if bg_id:
+            bg_folder = os.path.join(ASSETS_DIR, "backgrounds", bg_id)
+            bg_file = os.path.join(ASSETS_DIR, "backgrounds", f"{bg_id}.png")
+            if not os.path.isdir(bg_folder) and not os.path.exists(bg_file):
+                missing.append(f"backgrounds/{bg_id}.png")
 
         # Check character sprites
         for char_id in scene.get("characters_present", []):
@@ -105,6 +154,24 @@ def check_asset_availability(script):
                             missing.append(f"sfx/{sfx_file}")
                     else:
                         missing.append(f"sfx/{sfx_file}")
+
+    # Check music — v2 uses mood-based music selection (playful/calm/tense)
+    # Also check v1 music files as fallback
+    mood = script.get("metadata", {}).get("mood", "playful")
+    mood_music_file = f"{mood}.wav"
+    mood_music_path = os.path.join(ASSETS_DIR, "music", mood_music_file)
+
+    if not os.path.exists(mood_music_path):
+        # Try v1 fallback mapping: playful → main_theme, calm → main_theme, tense → tense_theme
+        v1_fallback = {
+            "playful": "main_theme.wav",
+            "calm": "main_theme.wav",
+            "tense": "tense_theme.wav",
+        }
+        fallback_file = v1_fallback.get(mood, "main_theme.wav")
+        fallback_path = os.path.join(ASSETS_DIR, "music", fallback_file)
+        if not os.path.exists(fallback_path):
+            missing.append(f"music/{mood_music_file} (and fallback {fallback_file})")
 
     # Deduplicate
     missing = list(set(missing))
@@ -153,14 +220,15 @@ def check_video_quality(video_path):
 
         probe = json.loads(result.stdout)
 
-        # Resolution check
+        # Resolution check — accepts both horizontal (1920x1080) and vertical (1080x1920)
         if gates.get("resolution_check", True):
+            valid_resolutions = {(1920, 1080), (1080, 1920)}
             for stream in probe.get("streams", []):
                 if stream.get("codec_type") == "video":
                     width = stream.get("width", 0)
                     height = stream.get("height", 0)
-                    if width != 1080 or height != 1920:
-                        issues.append(f"Resolution: {width}x{height} (expected 1080x1920)")
+                    if (width, height) not in valid_resolutions:
+                        issues.append(f"Resolution: {width}x{height} (expected 1920x1080 or 1080x1920)")
 
         # Duration check — use tolerance from config, hard cap at 90s
         duration = float(probe.get("format", {}).get("duration", 0))

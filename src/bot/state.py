@@ -10,13 +10,10 @@ STATE_FILE = os.path.join(os.path.dirname(__file__), "..", "..", "data", "pipeli
 def _default_state():
     return {
         "current_episode": None,
-        "stage": "idle",  # idle, ideas_posted, script_generating, script_review, video_generating, video_review, publishing, done
+        "stage": "idle",  # v2 stages: idle, ideas_posted, pipeline_running, done
         "ideas": [],
         "selected_idea_index": None,
-        "script_notion_url": None,
-        "script_version": 1,
-        "video_variants": [],
-        "selected_video_index": None,
+        "current_script": None,
         "updated_at": datetime.utcnow().isoformat()
     }
 

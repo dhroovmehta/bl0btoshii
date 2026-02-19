@@ -4,6 +4,39 @@ All diagnosed issues, their root causes, and resolution status.
 
 ---
 
+## Open Issues (v2 — discovered during redesign audit)
+
+(No open issues — all resolved in v2 Stage 1 and Stage 2)
+
+### ISS-013: YouTube title missing on published video (2026-02-18)
+**Severity:** High — published video had no title
+**Root Cause:** `platforms.py:115` falls back to `"bl0btoshii episode"` if metadata title is empty. v1 metadata flow didn't reliably pass title from script through to publisher.
+**Fix:** v2 `_run_full_pipeline()` calls `generate_metadata(script)` which reads `script.get("title")` directly from the script root. Title is always present because `generate_episode()` sets it. Added test coverage: `TestISS013YouTubeTitle` in `test_v2_pipeline.py` verifies title flows through metadata and is non-empty.
+**Status:** RESOLVED — v2 Stage 2
+
+### ISS-012: sprite_manager returns transparent placeholder for missing sprites (2026-02-18)
+**Severity:** High — video renders with invisible characters, pipeline reports "success"
+**Root Cause:** `load_sprite()` returns a transparent PNG for missing characters. No warning printed to stdout or Discord.
+**Fix:** Added `[WARNING]` print to stdout (visible in journalctl) + warning collection via `get_warnings()`/`clear_warnings()`. Pipeline caller checks `collect_rendering_warnings()` after rendering and sends accumulated warnings to Discord #errors. Pre-render `check_asset_availability()` blocks rendering before it starts.
+**Tests:** 6 tests in `test_silent_failures.py` (TestSpriteManagerWarnings)
+**Status:** RESOLVED — v2 Stage 1
+
+### ISS-011: scene_builder renders blue rectangle for missing backgrounds (2026-02-18)
+**Severity:** High — video renders with blue screen, pipeline reports "success"
+**Root Cause:** `load_background()` returns a solid blue `Image.new("RGB", ...)` for missing backgrounds. No warning printed.
+**Fix:** Added `[WARNING]` print to stdout + warning collection via `get_warnings()`/`clear_warnings()`. Same aggregation pattern as ISS-012.
+**Tests:** 5 tests in `test_silent_failures.py` (TestSceneBuilderWarnings)
+**Status:** RESOLVED — v2 Stage 1
+
+### ISS-010: audio_mixer returns silence for missing music (2026-02-18)
+**Severity:** Medium — video has no music, pipeline reports "success"
+**Root Cause:** `_load_audio()` returns `None` for missing files. `mix_episode_audio()` creates silence. No warning printed.
+**Fix:** Added `[WARNING]` print to stdout + warning collection. Also added music file check to `check_asset_availability()` in orchestrator with v1→v2 mood fallback mapping (playful→main_theme, calm→main_theme, tense→tense_theme).
+**Tests:** 4 tests in `test_silent_failures.py` (TestAudioMixerWarnings) + 2 (TestAssetCheckMusic)
+**Status:** RESOLVED — v2 Stage 1
+
+---
+
 ## Resolved Issues
 
 ### ISS-009: Video generation timeout too tight after pacing fix (2026-02-17)
@@ -33,8 +66,8 @@ All diagnosed issues, their root causes, and resolution status.
 ### ISS-005: No startup recovery from crashed states (2025-02-17)
 **Severity:** Critical — pipeline permanently stuck after any VPS restart
 **Root Cause:** `on_ready()` never checked `pipeline_state.json` for in-flight states
-**Fix:** `src/bot/recovery.py` — `recover_stuck_state()` called from `on_ready()`. Maps `script_generating` → `idle`, `video_generating` → `script_review`, `publishing` → `video_review`.
-**Status:** RESOLVED
+**Fix:** `src/bot/recovery.py` — `recover_stuck_state()` called from `on_ready()`. v1 mapped 3 states (script_generating→idle, video_generating→script_review, publishing→video_review). v2 simplified to single mapping: `pipeline_running→idle`. Safe states: `idle`, `ideas_posted`, `done`.
+**Status:** RESOLVED (updated in v2 Stage 2)
 
 ### ISS-004: continuity JSON files crash on missing files (2025-02-17)
 **Severity:** Critical — blocks entire publish path (Drive upload, platform publish, episode logging)

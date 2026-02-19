@@ -10,6 +10,19 @@ DATA_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "data")
 # Sprites are pre-sized to ~192x288 display size by resize_for_pipeline.py
 SPRITE_SCALE = 1
 
+# Warning collection — caller can check for silent fallbacks after rendering
+_warnings = []
+
+
+def get_warnings():
+    """Return list of warnings collected during rendering."""
+    return list(_warnings)
+
+
+def clear_warnings():
+    """Clear the warning list. Call before starting a new render."""
+    _warnings.clear()
+
 
 def _load_locations():
     with open(os.path.join(DATA_DIR, "locations.json"), "r") as f:
@@ -35,7 +48,10 @@ def load_sprite(character_id, state="idle"):
             ASSETS_DIR, "characters", character_id, "idle.png"
         )
     if not os.path.exists(sprite_path):
-        # Create a transparent placeholder
+        # Character is completely missing — warn loudly, return placeholder so pipeline doesn't crash
+        msg = f"[WARNING] Missing character sprite: {character_id}/idle.png — using transparent placeholder"
+        print(msg)
+        _warnings.append(msg)
         return Image.new("RGBA", (192, 288), (0, 0, 0, 0))
 
     sprite = Image.open(sprite_path).convert("RGBA")

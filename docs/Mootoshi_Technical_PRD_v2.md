@@ -45,28 +45,29 @@
 
 ### 1.1 What We're Building
 
-An automated content production pipeline that generates, assembles, and publishes short-form video episodes (30-45 seconds) featuring NES/8-bit pixel art animal characters on an island. The pipeline takes episode seed parameters as input and outputs platform-ready vertical video (9:16) published to TikTok, YouTube Shorts, and Instagram Reels.
+An automated content production pipeline that generates, assembles, and publishes short-form video episodes (30-45 seconds) featuring cinematic modern pixel art animal characters on an island. The pipeline takes episode seed parameters as input and outputs platform-ready video in two formats: horizontal (16:9, 1920x1080) for YouTube and vertical (9:16, 1080x1920) for YouTube Shorts, TikTok, and Instagram Reels.
 
-The entire system is controlled through a Discord server with dedicated channels. The creator (you) interacts only through Discord. All documents (scripts, reports) live in Notion. Everything else is automated.
+The entire system is controlled through a Discord server with dedicated channels. The creator (you) interacts only through Discord — pick an idea, and the rest is automated. No script review, no video selection, no Notion.
 
 ### 1.2 Core Constraints
 
-- **No voice acting.** All dialogue is NES-style text boxes.
-- **NES pixel art aesthetic.** All visuals are 8-bit style with limited color palettes.
-- **Audio is chiptune music + retro SFX only.**
+- **No voice acting.** All dialogue is retro-style text boxes with typewriter animation.
+- **Cinematic modern pixel art aesthetic.** Rich colors, atmospheric lighting, parallax depth. NOT chunky NES 8-bit — think higher detail with smaller pixels.
+- **Audio is atmospheric game soundtracks + retro SFX.** Music is quiet background atmosphere (-20dB), not overpowering chiptune.
 - **Child-safe content.** No profanity, violence, or mature themes.
 - **Minimize costs.** Prefer free/open-source tools. Max budget: ~$50/month.
 - **Claude Max subscription available** — Claude API calls for story generation are covered.
 - **Claude Code is the primary build tool** for all scripts and automation.
 - **Discord is the only human interface.** You never need to touch code, terminals, or dashboards.
-- **Notion is the document layer.** Scripts and reports are published as Notion pages.
+- **No Notion.** Removed in v2 (D-010). All notifications go directly to Discord.
 
 ### 1.3 Target Output
 
-- Minimum 1 episode per day across all 3 platforms (30+ episodes/month)
-- Each episode: 30-45 seconds, 1080x1920 (9:16), MP4
-- Automated from idea generation through publishing
-- Human touchpoints: idea selection, script approval, video preview selection
+- Minimum 1 episode per day across all platforms (30+ episodes/month)
+- Each episode produces 2 videos: horizontal (1920x1080, 16:9) + vertical (1080x1920, 9:16), 30-45 seconds, MP4
+- Automated from idea generation through YouTube publishing
+- **Single human touchpoint: idea selection.** Everything after that is automated.
+- You manually upload the vertical video to TikTok and Instagram Reels
 
 ### 1.4 The Characters
 
@@ -101,79 +102,65 @@ Six animal characters. All follow the [Sound]-sters naming convention with short
 
 ### 2.1 High-Level Flow
 
+> **v2 CHANGE:** Removed script review (D-011), Notion (D-010), video variants (D-012). Single human touchpoint: idea selection.
+
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                     DAILY AUTOMATED PIPELINE                     │
+│                     DAILY AUTOMATED PIPELINE (v2)                │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                  │
-│  1. IDEA GENERATION (Automated)                                  │
+│  1. IDEA GENERATION (Automated — 9:15 AM ET)                     │
 │     ├── Slot Machine picks episode parameters                    │
 │     ├── Continuity Engine checks for callback opportunities      │
 │     ├── Trending Topics module checks current trends             │
-│     ├── Seasonal Theme module checks calendar events             │
-│     └── Generates 2-3 episode concepts                           │
+│     └── Generates 3 episode concepts                             │
 │              │                                                   │
 │              ▼                                                   │
 │  2. IDEA SELECTION (Human — Discord #idea-selection)             │
-│     ├── Bot posts 2-3 options                                    │
-│     ├── You reply with your pick                                 │
-│     └── Bot kicks off script generation                          │
+│     ├── Bot posts 3 short idea summaries                         │
+│     ├── You reply with 1, 2, or 3                                │
+│     └── Bot kicks off fully automated pipeline                   │
 │              │                                                   │
 │              ▼                                                   │
 │  3. SCRIPT WRITING (Automated)                                   │
 │     ├── Claude generates full episode script                     │
 │     ├── Script validated automatically                           │
-│     ├── Published to Notion as new page                          │
-│     └── Link posted to Discord #script-review                    │
+│     ├── Discord notification: "Script written for EP001: Title"  │
+│     └── Proceeds immediately to video production                 │
 │              │                                                   │
 │              ▼                                                   │
-│  4. SCRIPT REVIEW (Human — Discord #script-review)               │
-│     ├── You review script in Notion                              │
-│     ├── Approve in Discord, OR                                   │
-│     ├── Submit freeform edits in Discord                         │
-│     │   ├── Claude interprets edits, rewrites script             │
-│     │   ├── New Notion page created with changes                 │
-│     │   └── Updated link posted in Discord — repeat review       │
-│     └── On approval, bot kicks off video production              │
-│              │                                                   │
-│              ▼                                                   │
-│  5. VIDEO PRODUCTION (Automated)                                 │
+│  4. VIDEO PRODUCTION (Automated)                                 │
 │     ├── Asset check (sprites, backgrounds, SFX, music)           │
-│     ├── Text box rendering (frame-by-frame typewriter)           │
-│     ├── Video assembly (FFmpeg compositing)                      │
-│     ├── Audio mixing (music + SFX + text blips)                  │
-│     └── Generate 2-3 video variants                              │
-│         (different music, pacing, character positioning)          │
+│     ├── Parallax background compositing (multi-layer)            │
+│     ├── Camera movements (pan, zoom per scene)                   │
+│     ├── Character sprite rendering + animation                   │
+│     ├── Text box rendering (typewriter at 12 cps)                │
+│     ├── Frame streaming to FFmpeg (no temp files)                │
+│     ├── Render HORIZONTAL (1920x1080) → MP4                      │
+│     ├── Render VERTICAL (1080x1920) → MP4                        │
+│     ├── Audio mixing (mood-based music + SFX + blips)            │
+│     └── Discord notification: "Video rendered (H + V)"           │
 │              │                                                   │
 │              ▼                                                   │
-│  6. VIDEO PREVIEW (Human — Discord #video-preview)               │
-│     ├── Bot posts links to 2-3 video versions                    │
-│     ├── You pick one, OR                                         │
-│     ├── Request changes (e.g. "music from v2, pacing from v1")   │
-│     │   ├── System generates new version                         │
-│     │   └── Posts updated link — repeat review                   │
-│     └── On approval, bot kicks off metadata + scheduling         │
+│  5. GOOGLE DRIVE UPLOAD (Automated)                              │
+│     ├── Upload both videos to Google Drive                       │
+│     ├── Assign real episode number (EP001)                       │
+│     └── Discord notification: "Uploaded to Google Drive"          │
 │              │                                                   │
 │              ▼                                                   │
-│  7. METADATA GENERATION (Automated)                              │
-│     ├── Auto-generate titles, descriptions, hashtags per platform│
-│     ├── Apply industry best-practice rules                       │
+│  6. METADATA & PUBLISHING (Automated)                            │
+│     ├── Generate titles, descriptions, hashtags per platform     │
 │     ├── Content safety scan                                      │
-│     └── Post metadata log to Discord #publishing-log             │
+│     ├── Publish HORIZONTAL → YouTube (regular video)             │
+│     ├── Publish VERTICAL → YouTube Shorts                        │
+│     ├── Discord notification: "Published to YouTube + Shorts"    │
+│     └── Continuity update (timeline, gags, growth)               │
 │              │                                                   │
 │              ▼                                                   │
-│  8. SCHEDULING & PUBLISHING (Automated — no human input)         │
-│     ├── Schedule for next optimal time slot                      │
-│     ├── Stagger across platforms (30 min apart)                  │
-│     ├── Upload to TikTok, YouTube Shorts, Instagram Reels        │
-│     └── Log results in #publishing-log                           │
-│              │                                                   │
-│              ▼                                                   │
-│  9. ANALYTICS (Automated — runs 24-48 hours after publish)       │
-│     ├── Pull performance data from all platforms                 │
-│     ├── Auto-adjust content weights for future episodes          │
-│     └── Weekly: publish performance report to Notion             │
-│         └── Link posted to Discord #weekly-analytics             │
+│  7. MANUAL UPLOAD (Human)                                        │
+│     └── You upload vertical video to TikTok + Instagram Reels    │
+│                                                                  │
+│  ⚠️ ANY FAILURE at steps 3-6 → Discord #errors with details     │
 │                                                                  │
 └─────────────────────────────────────────────────────────────────┘
 ```
@@ -185,13 +172,13 @@ Six animal characters. All follow the [Sound]-sters naming convention with short
 | Language | Python | 3.11+ |
 | LLM API | Anthropic Claude API (via Max subscription) | Latest (claude-sonnet-4-20250514) |
 | Discord Bot | discord.py | Latest |
-| Notion API | notion-client (Python) | Latest |
+| ~~Notion API~~ | ~~notion-client (Python)~~ | **REMOVED in v2 (D-010)** |
 | Image Processing | Pillow (PIL) | Latest |
 | Video Composition | FFmpeg | 6.0+ |
 | Audio Processing | pydub + FFmpeg | Latest |
-| HTTP Client | httpx (async) | Latest |
+| HTTP Client | httpx (async) / requests | Latest |
 | Data Format | JSON (flat-file) → SQLite (at scale) | — |
-| Scheduling | APScheduler (local) or n8n (orchestrated) | Latest |
+| Scheduling | discord.py tasks.loop | Latest |
 | Testing | pytest | Latest |
 | Config | PyYAML + python-dotenv | Latest |
 
@@ -205,14 +192,15 @@ The Discord bot is the single interface between you and the pipeline. It runs in
 
 ### 3.2 Server Structure
 
+> **v2 CHANGE:** Removed #script-review (D-011) and #video-preview (D-012). Added #pipeline-status for step-by-step progress.
+
 ```
 MOOTOSHI SERVER
-├── #idea-selection        — Daily: bot posts 2-3 episode ideas, you pick one
-├── #script-review         — Bot posts Notion link to script, you approve/edit
-├── #video-preview         — Bot posts 2-3 video versions, you pick/edit
-├── #publishing-log        — Bot logs scheduled metadata, you intervene if needed
-├── #weekly-analytics      — Bot posts Notion link to weekly performance report
-└── #errors                — Bot posts error alerts and startup/restart notifications
+├── #idea-selection        — Daily: bot posts 3 episode ideas, you pick one
+├── #pipeline-status       — Bot posts progress at each step (script done, video done, uploaded, published)
+├── #publishing-log        — Bot logs metadata and publish confirmations with links
+├── #weekly-analytics      — Bot posts weekly performance summary
+└── #errors                — Bot posts error alerts — EVERY failure surfaces here
 ```
 
 ### 3.3 Bot Implementation: Discord Bot Spec
@@ -251,52 +239,29 @@ BOT RESPONDS:
 
 **Input parsing:** Bot accepts "1", "2", "3", or natural language like "option 2" or "the second one" or "quacks and meows one".
 
-#### #script-review
+#### ~~#script-review~~ — REMOVED (v2, D-011)
+
+> Scripts are no longer reviewed. After idea selection, the pipeline generates the script and immediately proceeds to video production. A brief summary is posted to #pipeline-status.
+
+#### ~~#video-preview~~ — REMOVED (v2, D-012)
+
+> Video variants are no longer generated. The pipeline produces two format versions (horizontal + vertical) automatically and proceeds to upload/publish. Progress is posted to #pipeline-status.
+
+#### #pipeline-status (NEW in v2)
 
 ```
-BOT POSTS (after script generation):
-"📝 **Script Ready — EP024: The Diplomatic Pouch**
+BOT POSTS (automated progress notifications — no response needed):
 
-[Notion Link: https://notion.so/...]
+"Script written for DRAFT-EP-001: The Diplomatic Pouch (3 scenes, 34s)"
 
-Title: EP # 024 | The Diplomatic Pouch | Feb 15, 2026
+"Rendering video (horizontal + vertical)..."
 
-Reply **approve** to proceed to video production.
-Reply with edit notes to request changes."
+"Video rendered — horizontal (1920x1080, 34s) + vertical (1080x1920, 34s)"
 
-USER REPLIES (approve): "approve"
-BOT RESPONDS: "✅ Script approved. Starting video production..."
+"Uploaded to Google Drive — EP001: The Diplomatic Pouch"
 
-USER REPLIES (edits): "make quacks more paranoid in scene 2, 
-and add a callback to the ketchup conspiracy from EP008"
-BOT RESPONDS: "✏️ Revising script with your notes..."
-[Claude rewrites script, publishes new Notion page]
-"📝 **Updated Script — EP024: The Diplomatic Pouch (v2)**
-[New Notion Link: https://notion.so/...]
-Reply **approve** or submit more edits."
+"Published to YouTube: [link] | YouTube Shorts: [link]"
 ```
-
-#### #video-preview
-
-```
-BOT POSTS (after video production):
-"🎥 **Video Preview — EP024: The Diplomatic Pouch**
-
-**Version 1:** Mystery theme music, standard pacing (34s)
-[Video link or file]
-
-**Version 2:** Town theme music, faster pacing (30s)
-[Video link or file]
-
-**Version 3:** Chill theme music, slower pacing with extended 
-punchline hold (38s)
-[Video link or file]
-
-Reply with your pick (**1**, **2**, **3**) or request changes."
-
-USER REPLIES: "use music from 1 but pacing from 2"
-BOT RESPONDS: "🎬 Generating custom version..."
-[System creates new version, posts link]
 "🎥 **Updated Version — EP024: The Diplomatic Pouch (Custom)**
 [Video link]
 Reply **approve** or request more changes."
@@ -381,11 +346,15 @@ python-dotenv >= 1.0.0
 
 ---
 
-## 4. Notion Integration
+## 4. ~~Notion Integration~~ — REMOVED (v2, D-010)
 
 ### 4.1 Overview
 
-Notion is the document layer. All scripts and reports are published as Notion pages in a dedicated workspace you've already set up.
+> **REMOVED in v2.** Notion integration has been removed entirely. Zero never opened the Notion pages — he read the script summary in Discord. All notifications now go directly to Discord channels. The `src/notion/` directory and all Notion env vars (NOTION_API_KEY, NOTION_SCRIPTS_DB_ID, NOTION_ANALYTICS_DB_ID) are no longer used.
+>
+> Scripts are generated and consumed internally by the pipeline. A brief summary (episode ID, title, scene count, duration) is posted to Discord #pipeline-status as a notification.
+
+~~Notion is the document layer. All scripts and reports are published as Notion pages in a dedicated workspace you've already set up.~~
 
 ### 4.2 Notion API Integration
 
@@ -565,12 +534,22 @@ mootoshi/
 │   │   ├── quacks/
 │   │   └── reows/
 │   ├── backgrounds/
-│   │   ├── diner_interior.png
+│   │   ├── diner_interior.png          # v1 flat background (kept for backward compat)
+│   │   ├── diner_interior/             # v2 parallax layers (takes priority if exists)
+│   │   │   ├── background.png          # Farthest layer — walls, sky
+│   │   │   ├── midground.png           # Middle — furniture, structures (transparent PNG)
+│   │   │   ├── foreground.png          # Closest — floor, front objects (transparent PNG)
+│   │   │   └── effects.png             # Optional — light rays, steam (transparent PNG)
 │   │   ├── beach.png
+│   │   ├── beach/                      # Same layer structure per location
 │   │   ├── forest.png
+│   │   ├── forest/
 │   │   ├── town_square.png
+│   │   ├── town_square/
 │   │   ├── chubs_office.png
-│   │   └── reows_place.png
+│   │   ├── chubs_office/
+│   │   ├── reows_place.png
+│   │   └── reows_place/
 │   ├── ui/
 │   │   ├── textbox_template.png
 │   │   ├── endcard_template.png
@@ -580,9 +559,12 @@ mootoshi/
 │   │       ├── pens_portrait.png
 │   │       └── ...
 │   ├── music/
-│   │   ├── main_theme.wav           # Bouncy/playful (Curb "Frolic" style)
-│   │   ├── tense_theme.wav          # Tense/awkward underscore
-│   │   ├── upbeat_theme.wav         # Fast/energetic transition
+│   │   ├── playful.wav              # v2: Light, fun, bouncy — comedy/everyday scenes
+│   │   ├── calm.wav                 # v2: Gentle, atmospheric — dialogue/character moments
+│   │   ├── tense.wav                # v2: Suspenseful, mysterious — investigations/schemes
+│   │   ├── main_theme.wav           # v1: kept for backward compat
+│   │   ├── tense_theme.wav          # v1: kept for backward compat
+│   │   ├── upbeat_theme.wav         # v1: kept for backward compat
 │   │   └── LICENSES.md              # Music license documentation
 │   └── sfx/
 │       ├── text_blip_low.wav
@@ -606,17 +588,17 @@ mootoshi/
 │   │   ├── alerts.py                # Centralized error alerting to #errors channel
 │   │   ├── scheduler.py             # Scheduled trigger times (daily 9:15 AM, weekly Mon 9:00 AM)
 │   │   ├── handlers/
-│   │   │   ├── idea_selection.py    # #idea-selection channel handler
-│   │   │   ├── script_review.py     # #script-review channel handler
-│   │   │   ├── video_preview.py     # #video-preview channel handler
+│   │   │   ├── idea_selection.py    # #idea-selection handler — triggers full pipeline in v2
+│   │   │   ├── script_review.py     # REMOVED in v2 (D-011)
+│   │   │   ├── video_preview.py     # REMOVED in v2 (D-012)
 │   │   │   ├── publishing_log.py    # #publishing-log channel handler
 │   │   │   └── analytics.py         # #weekly-analytics channel handler
 │   │   └── state.py                 # Pipeline state manager
-│   ├── notion/
+│   ├── notion/                         # REMOVED in v2 (D-010) — kept in repo but unused
 │   │   ├── __init__.py
-│   │   ├── client.py                # Notion API client wrapper
-│   │   ├── script_publisher.py      # Publish scripts to Notion
-│   │   └── report_publisher.py      # Publish analytics reports to Notion
+│   │   ├── client.py
+│   │   ├── script_publisher.py
+│   │   └── report_publisher.py
 │   ├── story_generator/
 │   │   ├── __init__.py
 │   │   ├── engine.py                # Main story generation engine
@@ -641,11 +623,16 @@ mootoshi/
 │   │   └── fonts.py                 # Font loading
 │   ├── video_assembler/
 │   │   ├── __init__.py
-│   │   ├── composer.py              # Main FFmpeg composition pipeline
-│   │   ├── scene_builder.py         # Per-scene frame generation
-│   │   ├── sprite_manager.py        # Character sprite positioning
-│   │   ├── variant_generator.py     # Generate 2-3 video variants
+│   │   ├── composer.py              # Main FFmpeg composition pipeline (v2: dual format + frame streaming)
+│   │   ├── scene_builder.py         # Per-scene frame generation (v2: parallax + camera)
+│   │   ├── sprite_manager.py        # Character sprite positioning (v2: sprite sheet support)
+│   │   ├── variant_generator.py     # REMOVED in v2 (D-012)
 │   │   └── transitions.py           # Scene transitions
+│   ├── rendering/                      # NEW in v2
+│   │   ├── __init__.py
+│   │   ├── camera.py                # Camera system (static, pan, zoom per scene)
+│   │   ├── parallax.py              # Multi-layer background compositor
+│   │   └── sprite_animator.py       # Sprite sheet detection + frame cycling
 │   ├── audio_mixer/
 │   │   ├── __init__.py
 │   │   └── mixer.py                 # Music + SFX + blip mixing
@@ -1470,30 +1457,45 @@ def render_dialogue_frames(
 
 ## 13. Module 6: Video Assembler
 
+> **v2 CHANGES:** Dual format output (D-013), parallax backgrounds (D-014), frame streaming (D-015). No temp frame files.
+
 ### 13.1 Composition Pipeline
 
 ```
 For each scene in script:
-    1. BACKGROUND: Load + scale to 1080x1920 (nearest-neighbor)
-    2. CHARACTERS: Load sprite, extract frame, scale, position, composite
-    3. DIALOGUE: Render text box frames, composite at bottom
-    4. SFX: Record trigger timestamps for audio mixer
+    1. CAMERA: Calculate camera position for this frame (static, pan, zoom)
+    2. BACKGROUND: Composite parallax layers (background → midground → foreground → effects)
+       - Each layer moves at different speed relative to camera
+       - Fallback: load v1 flat background if no layer directory exists
+    3. CHARACTERS: Load sprite (or sprite sheet frame), scale, position, composite
+    4. DIALOGUE: Render text box frames, composite at text box position
+    5. SFX: Record trigger timestamps for audio mixer
+    6. STREAM: Pipe frame bytes directly to FFmpeg stdin (no temp files)
 
 After all scenes:
-    5. END CARD: Load template, overlay text, hold 3 seconds
-    6. AUDIO: Mix music + SFX + text blips (Module 7)
-    7. RENDER: Combine frames to video via FFmpeg, mux audio
-    8. OUTPUT: MP4 at 1080x1920, 30fps, H.264 + AAC
+    7. END CARD: Load template, overlay text, hold 3 seconds
+    8. AUDIO: Mix mood-based music + SFX + text blips (Module 7)
+    9. MUX: Combine video stream with audio
+
+Repeat for second format:
+    10. Re-render all scenes with alternate layout config (different resolution, text box position, character positions)
+
+OUTPUT:
+    - HORIZONTAL: MP4 at 1920x1080, 30fps, H.264 + AAC
+    - VERTICAL: MP4 at 1080x1920, 30fps, H.264 + AAC
 ```
 
 ### 13.2 FFmpeg Commands
 
 ```bash
-# Frames to video
-ffmpeg -framerate 30 -i frames/frame_%05d.png -c:v libx264 -pix_fmt yuv420p temp.mp4
+# v2: Frame streaming via stdin (no temp frame files on disk)
+ffmpeg -f rawvideo -pix_fmt rgba -s 1920x1080 -r 30 -i pipe:0 \
+    -c:v libx264 -pix_fmt yuv420p temp_horizontal.mp4
 
 # Add audio
-ffmpeg -i temp.mp4 -i mixed_audio.wav -c:v copy -c:a aac -shortest output.mp4
+ffmpeg -i temp_horizontal.mp4 -i mixed_audio.wav -c:v copy -c:a aac -shortest output_horizontal.mp4
+
+# Same for vertical at 1080x1920
 ```
 
 ### 13.3 Critical Rules
@@ -1501,81 +1503,49 @@ ffmpeg -i temp.mp4 -i mixed_audio.wav -c:v copy -c:a aac -shortest output.mp4
 - **Nearest-neighbor scaling ONLY** — no anti-aliasing, no smoothing
 - All sprites must maintain pixel-perfect rendering at any scale
 - Text boxes render over all other layers
-- Simple cuts between scenes (no fancy transitions — NES authentic)
-- **Ground-level positioning:** Character y-coordinates must fall within each location's `ground_zone` (y=1050-1480). Sprites are 192x288px at render scale; positions are spaced to prevent overlap.
-- **Fallback position:** If a position name is not found in `locations.json`, sprite_manager falls back to `{"x": 450, "y": 1300}` (center ground level). See `src/video_assembler/sprite_manager.py`.
-- **Dialogue box clearance:** Character sprites must not overlap the dialogue box area at the bottom of the frame.
+- Simple cuts between scenes (no fancy transitions)
+- **Parallax depth:** Background layer static, midground moves at 0.5x camera speed, foreground at 1.5x. Effects layer optional.
+- **Ground-level positioning:** Character y-coordinates scale per format. Horizontal: characters in lower third. Vertical: characters in middle-lower area.
+- **Fallback position:** If a position name is not found in `locations.json`, sprite_manager falls back to center ground level.
+- **Dialogue box clearance:** Character sprites must not overlap the dialogue box area.
+- **Backward compatibility:** New code supports both v1 flat backgrounds AND v2 layered backgrounds, both single-frame sprites AND sprite sheets (D-014).
 
 ---
 
 ## 14. Module 7: Audio Mixer
+
+> **v2 CHANGES:** Much quieter volumes, mood-based music selection (D-016), dialogue ducking.
 
 ### 14.1 Implementation
 
 ```python
 def mix_episode_audio(
     script: dict,
-    music_path: str,
     sfx_dir: str = "assets/sfx/",
-    music_volume_db: float = -12.0,
-    sfx_volume_db: float = -3.0,
-    blip_volume_db: float = -6.0
+    music_volume_db: float = -20.0,    # v2: was -12.0 — much quieter background
+    sfx_volume_db: float = -8.0,       # v2: was -3.0 — softer
+    blip_volume_db: float = -12.0      # v2: was -6.0 — softer
 ) -> str:  # Returns path to mixed WAV
 ```
 
 Process:
-1. Load background music, loop if shorter than episode
-2. Reduce music to -12dB (background level)
-3. Place character-specific text blips synced to typewriter animation
-4. Place SFX at trigger timestamps
-5. Mix all layers, normalize, export WAV
+1. **Mood-based music selection:** Script includes `mood` field (playful, calm, tense). Auto-select matching track from `assets/music/` (playful.wav, calm.wav, tense.wav).
+2. Load background music, loop if shorter than episode
+3. Reduce music to -20dB (background atmosphere, not overpowering)
+4. **Dialogue ducking:** During dialogue segments, reduce music by additional -5dB so text is the focus
+5. Place character-specific text blips synced to typewriter animation
+6. Place SFX at trigger timestamps
+7. Mix all layers, normalize, export WAV
 
 ---
 
-## 15. Module 8: Video Variant Generator
+## 15. ~~Module 8: Video Variant Generator~~ — REMOVED (v2, D-012)
 
-### 15.1 Purpose
-
-Generates 2-3 variations of each episode for you to choose from in the #video-preview channel.
-
-### 15.2 Variant Dimensions
-
-Each variant differs along these axes:
-- **Music track:** Different background music from the assets library
-- **Pacing:** Adjusts scene durations and dialogue timing (faster/slower/standard)
-- **Character positioning:** Alternate position assignments from the location's available positions
-- **Punchline hold:** Varies the hold time on the final frame (1s / 2s / 3s)
-
-### 15.3 Implementation
-
-Variants are generated one at a time via `generate_single_variant()` so the async handler can apply per-variant timeouts (25 min each) and send progress messages to Discord between renders. The original `generate_variants()` is preserved for batch use but is no longer called by the pipeline.
-
-```python
-def generate_single_variant(
-    script: dict,
-    variant_index: int,    # 0-based index into VARIANT_PRESETS
-    count: int = 3
-) -> dict:  # Returns {"name", "description", "video_path", "duration_seconds", "preset"}
-    """
-    Generate one video variant by index. Blocking call.
-
-    Variant 0: Standard — default pacing, situation-matched music
-    Variant 1: Upbeat — faster pacing (0.85x), energetic music
-    Variant 2: Tense — slower pacing (1.15x), extended punchline hold, tense underscore
-
-    Each variant is a complete, publishable video.
-    """
-```
-
-### 15.4 Custom Version from Edit Notes
-
-```python
-async def generate_custom_variant(
-    script: dict,
-    edit_notes: str,           # "music from v2, pacing from v1"
-    existing_variants: list    # References to already-generated versions
-) -> str:  # Returns path to custom video
-```
+> **REMOVED in v2.** The variant system has been replaced by dual-format output (D-012, D-013). Instead of generating 3 variants with different music/pacing for human selection, the pipeline now generates 1 set of scene data rendered into 2 formats (horizontal + vertical). Music is selected automatically via mood-based matching (D-016).
+>
+> **Removed code:** `variant_generator.py` (VARIANT_PRESETS, generate_variants, generate_single_variant, generate_custom_variant), #video-preview channel handler, video_review pipeline state.
+>
+> **Replaced by:** Dual-format rendering in `scene_builder.py` / `composer.py` with format-specific layout configs.
 
 ---
 
@@ -1811,101 +1781,84 @@ Report contents:
 
 ## 19. End-to-End Pipeline Orchestration
 
+> **v2 CHANGE:** Simplified from 22 steps with 3 human waits to 14 steps with 1 human wait.
+
 ### 19.1 Daily Trigger
 
 The pipeline runs daily at **9:15 AM ET** (configured in `src/bot/scheduler.py`). Weekly analytics runs **Monday at 9:00 AM ET**. Both use discord.py's `tasks.loop(time=...)` with timezone-aware times. The `!generate` and `!report` commands allow manual triggering at any time.
 
 1. **Trend Check** — Scan for trending topics and seasonal themes
 2. **Continuity Check** — Load timeline, running gags, character growth
-3. **Idea Generation** — Slot machine generates 2-3 ideas
+3. **Idea Generation** — Slot machine generates 3 ideas
 4. **Discord Post** — Bot posts ideas to #idea-selection
-5. **WAIT** — Bot waits for your selection
+5. **WAIT** — Bot waits for your selection (1, 2, or 3)
 6. **Script Generation** — Claude writes script based on your pick
-7. **Notion Publish** — Script published to Notion
-8. **Discord Post** — Bot posts Notion link to #script-review
-9. **WAIT** — Bot waits for your approval (or edit loop)
-10. **Asset Check** — Verify all required sprites, backgrounds, SFX exist (SFX names resolve with or without `.wav` extension)
-11. **Video Production** — Text rendering → video assembly → audio mix
-12. **Variant Generation** — Create 2-3 video versions
-13. **Discord Post** — Bot posts video links to #video-preview
-14. **WAIT** — Bot waits for your pick (or edit loop)
-15. **Metadata Generation** — Auto-generate titles, descriptions, hashtags
-16. **Safety Check** — Scan metadata for content issues
-17. **Discord Post** — Bot posts metadata log to #publishing-log
-18. **Auto-Schedule** — Schedule for next optimal time slots
-19. **Auto-Publish** — Upload to all platforms at scheduled times
-20. **Confirmation** — Bot posts publish confirmation with links
-21. **Continuity Update** — Log events, gags, character growth
-22. **Analytics** (24-48 hours later) — Pull performance data, update weights
+7. **Discord Notify** — "#pipeline-status: Script written for EP001: Title (3 scenes, 34s)"
+8. **Asset Check** — Verify all required sprites, backgrounds, SFX exist
+9. **Video Production** — Parallax rendering → dual format (horizontal + vertical) → audio mix
+10. **Discord Notify** — "#pipeline-status: Video rendered (horizontal + vertical)"
+11. **Google Drive Upload** — Upload both videos, assign real episode number
+12. **Discord Notify** — "#pipeline-status: Uploaded to Google Drive"
+13. **Metadata & Publish** — Generate metadata, safety check, publish horizontal → YouTube, vertical → YouTube Shorts
+14. **Discord Notify** — "#pipeline-status: Published to YouTube + Shorts" with links
+15. **Continuity Update** — Log events, gags, character growth
+16. ⚠️ **ANY FAILURE** at steps 6-15 → Discord #errors with stage name, episode, and error details
 
 ---
 
-## 20. Build Priority & Dependency Tree
+## 20. Build Priority — v2 Stages
 
-Build in this exact order:
+> **v2 CHANGE:** Complete rebuild order. Foundation (Phases 1-4) already built in v1. v2 modifies existing code incrementally, TDD approach (tests first).
 
 ```
-PHASE 1: FOUNDATION (Days 1-2)
-├── 1. Project structure + setup script + requirements.txt
-├── 2. characters.json
-├── 3. situations.json + punchlines.json + locations.json
-├── 4. All config YAML files
-└── 5. .env.example with all required variables
+v1 FOUNDATION (ALREADY BUILT):
+├── Project structure, data schemas, config files
+├── Discord bot core + #idea-selection handler
+├── Story generator engine, slot machine, validator, continuity
+├── Text renderer, sprite manager, scene builder, video assembler
+├── Audio mixer, metadata generator, YouTube publisher
+└── Pipeline orchestrator, quality gates, safe_task wrapper
 
-PHASE 2: DISCORD BOT (Days 3-5)
-├── 6. Discord bot core (bot.py + state management)
-├── 7. #idea-selection handler
-├── 8. #script-review handler
-├── 9. #video-preview handler
-├── 10. #publishing-log handler
-└── 11. #weekly-analytics handler
+v2 STAGE 1: FIX ERROR ALERTING
+├── Audit every silent failure path (sprite_manager, scene_builder, audio_mixer, platforms)
+├── Ensure every failure reaches Discord #errors with clear message
+├── Tests: deliberately break each component, verify error surfaces
+└── This is the #1 problem — nothing else matters if errors are invisible
 
-PHASE 3: NOTION INTEGRATION (Days 5-6)
-├── 12. Notion client wrapper
-├── 13. Script publisher (creates pages with proper formatting)
-└── 14. Report publisher
+v2 STAGE 2: SIMPLIFY PIPELINE
+├── Remove: script_review.py handler, video_preview.py handler, Notion integration
+├── Remove: variant_generator.py
+├── New flow: idea selection → script → video → Drive → YouTube (all automated)
+├── Update pipeline state machine (remove script_review, video_review states)
+├── Add #pipeline-status notifications at each step
+└── Tests: end-to-end flow from idea pick through YouTube publish (unlisted)
 
-PHASE 4: STORY ENGINE (Days 6-8)
-├── 15. Claude prompt templates
-├── 16. Story generator engine
-├── 17. Slot machine (idea generator)
-├── 18. Script validator
-├── 19. Edit interpreter (freeform notes → revised script)
-├── 20. Continuity engine (timeline, gags, growth tracking)
-└── 21. Trending topics + seasonal themes module
+v2 STAGE 3: UPGRADE RENDERING ENGINE
+├── New: src/rendering/parallax.py — multi-layer background compositor
+├── New: src/rendering/camera.py — camera movements (static, pan, zoom)
+├── New: src/rendering/sprite_animator.py — sprite sheet detection + animation
+├── Switch to 16:9 horizontal (1920x1080) as primary format
+├── Frame streaming to FFmpeg via stdin (no temp files on disk)
+└── Tests: render test scenes with parallax, camera, verify output dimensions
 
-PHASE 5: VISUAL RENDERING (Days 9-12)
-├── 22. Text box renderer
-├── 23. Sprite manager
-├── 24. Scene builder
-├── 25. Video assembler (FFmpeg pipeline)
-├── 26. Video variant generator
-└── 27. Storyboard renderer
+v2 STAGE 4: DUAL FORMAT OUTPUT
+├── Same scene data → two videos (1920x1080 + 1080x1920)
+├── Format-specific layout configs (text box position, character Y, text box size)
+├── End card layouts for both formats
+└── Tests: verify both files created with correct dimensions
 
-PHASE 6: AUDIO (Days 12-13)
-└── 28. Audio mixer (music + SFX + blips)
+v2 STAGE 5: AUDIO OVERHAUL
+├── New volumes: music -20dB, SFX -8dB, blips -12dB
+├── Mood-based music selection (playful/calm/tense from script mood field)
+├── Dialogue ducking: reduce music -5dB during dialogue segments
+└── Tests: verify volume levels, mood selection, ducking timing
 
-PHASE 7: METADATA & PUBLISHING (Days 14-17)
-├── 29. Metadata generator + rules engine
-├── 30. Content safety scanner
-├── 31. Scheduler
-├── 32. TikTok publisher
-├── 33. YouTube publisher
-└── 34. Instagram publisher
-
-PHASE 8: ANALYTICS (Days 17-19)
-├── 35. Platform data collector
-├── 36. Performance analyzer
-├── 37. Auto-weight adjuster (feedback loop)
-└── 38. Weekly report generator
-
-PHASE 9: ORCHESTRATION (Days 19-21)
-├── 39. Pipeline orchestrator
-├── 40. Quality gates
-└── 41. n8n workflow setup (optional)
-
-PHASE 10: TESTING (Days 21-23)
-└── 42. Tests for all modules
+v2 STAGE 6: YOUTUBE DUAL-PUBLISH
+├── Publish horizontal → YouTube (regular video)
+├── Publish vertical → YouTube Shorts
+├── Both with proper metadata (title guaranteed non-empty)
+├── Privacy: "unlisted" for testing, "public" for production
+└── Tests: mock YouTube API, verify both uploads attempted with correct metadata
 ```
 
 ---
@@ -1914,31 +1867,34 @@ PHASE 10: TESTING (Days 21-23)
 
 ### 21.1 Quality Gates
 
+> **v2 CHANGE:** Removed human_review for scripts (D-011). Added dual-format resolution checks.
+
 ```yaml
 # config/quality_gates.yaml
 quality_gates:
   script_generation:
     max_retries: 3
     validation_required: true
-    human_review: true  # Always — via Discord #script-review
-  
+    human_review: false  # v2: removed script review step (D-011)
+
   asset_check:
-    allow_placeholders: false  # After initial asset creation
+    allow_placeholders: false
     block_on_missing: true
-    notify_discord: true  # Alert in #publishing-log if asset missing
-  
+    notify_discord: true  # Alert in #errors if asset missing
+
   video_assembly:
-    resolution_check: true  # Must be 1080x1920
-    duration_tolerance_pct: 15  # Allow 15% deviation
+    horizontal_resolution: [1920, 1080]  # v2: dual format
+    vertical_resolution: [1080, 1920]    # v2: dual format
+    duration_tolerance_pct: 15
     audio_sync_check: true
     min_file_size_kb: 500
     max_file_size_mb: 100
-  
+
   metadata:
     safety_check_required: true
     profanity_scan: true
     flag_threshold: 0.7
-  
+
   publishing:
     max_retries: 3
     retry_backoff_seconds: [30, 120, 600]
@@ -1946,19 +1902,24 @@ quality_gates:
 
 ### 21.2 Error Alerting
 
-All pipeline errors are sent to a dedicated **#errors** Discord channel via `src/bot/alerts.py`. The centralized `notify_error()` function is wired into every pipeline stage:
+> **v2 CHANGE:** This is the #1 priority fix. Every single failure must reach Discord #errors. No silent failures.
+
+All pipeline errors are sent to a dedicated **#errors** Discord channel via `src/bot/alerts.py`. The centralized `notify_error()` function is wired into every pipeline stage. The `safe_task()` wrapper catches all unhandled exceptions in background tasks.
 
 | Stage Name | Trigger Location |
 |---|---|
 | Daily Pipeline Trigger | `src/bot/bot.py` — scheduled task exception |
-| Weekly Analytics Trigger | `src/bot/bot.py` — scheduled task exception |
 | Script Generation | `src/bot/handlers/idea_selection.py` — Claude API / generation failure |
-| Script Revision | `src/bot/handlers/script_review.py` — revision failure |
-| Video Generation | `src/bot/handlers/script_review.py` — FFmpeg / variant generation failure or per-variant 25-minute timeout (`asyncio.wait_for`, 1500s). Variants generated one at a time with progress messages to Discord. On timeout: alerts #errors, resets stage to `script_review`, notifies user which variant failed. |
-| Custom Video Variant | `src/bot/handlers/video_preview.py` — custom variant failure |
-| Google Drive Upload | `src/bot/handlers/video_preview.py` — Drive upload failure |
-| Publishing & Metadata | `src/bot/handlers/video_preview.py` — metadata / platform publish failure |
+| ~~Script Revision~~ | ~~`src/bot/handlers/script_review.py`~~ — **REMOVED (D-011)** |
+| Asset Check | Pipeline orchestrator — missing sprites, backgrounds, SFX, or music |
+| Video Rendering | `src/bot/handlers/idea_selection.py` — FFmpeg / rendering failure or timeout |
+| Google Drive Upload | Pipeline orchestrator — Drive API failure |
+| YouTube Publishing | Pipeline orchestrator — YouTube API failure (both regular + Shorts) |
+| ~~Custom Video Variant~~ | ~~`src/bot/handlers/video_preview.py`~~ — **REMOVED (D-012)** |
+| Continuity Update | Pipeline orchestrator — non-blocking, logged but doesn't halt pipeline |
 | Weekly Analytics Report | `src/pipeline/orchestrator.py` — report generation failure |
+
+**Error message format:** Each error includes: stage name, episode ID, error message, and suggested action (e.g., "Re-approve the script to retry" or "Check VPS disk space").
 | Daily Pipeline | `src/pipeline/orchestrator.py` — missing channel |
 
 **Startup notifications:** Bot sends "online" message to #errors on every startup/restart.

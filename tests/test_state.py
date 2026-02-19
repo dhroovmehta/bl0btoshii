@@ -58,15 +58,13 @@ class TestDefaultState:
 
     def test_default_state_has_all_required_keys(self):
         state = _default_state()
+        # v2: simplified state — no Notion, no variants
         required_keys = [
             "current_episode",
             "stage",
             "ideas",
             "selected_idea_index",
-            "script_notion_url",
-            "script_version",
-            "video_variants",
-            "selected_video_index",
+            "current_script",
             "updated_at",
         ]
         for key in required_keys:
@@ -201,14 +199,11 @@ class TestGetSetStage:
         assert loaded["current_episode"] == "EP007"
 
     def test_all_valid_stages(self, state_file):
+        # v2 stages: simplified pipeline
         valid_stages = [
             "idle",
             "ideas_posted",
-            "script_generating",
-            "script_review",
-            "video_generating",
-            "video_review",
-            "publishing",
+            "pipeline_running",
             "done",
         ]
         for stage in valid_stages:

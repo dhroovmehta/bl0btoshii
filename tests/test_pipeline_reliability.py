@@ -263,56 +263,21 @@ class TestStartupRecovery:
             mock_save.assert_not_called()
 
     @pytest.mark.asyncio
-    async def test_video_generating_recovered(self):
-        """video_generating on startup must be reset to script_review."""
+    async def test_pipeline_running_recovered(self):
+        """v2: pipeline_running on startup must be reset to idle."""
         from src.bot.recovery import recover_stuck_state
 
         bot = MagicMock()
         errors_channel = AsyncMock()
         bot.get_channel.return_value = errors_channel
 
-        stuck_state = {"stage": "video_generating", "current_episode": "EP005"}
-
-        with patch("src.bot.recovery.load_state", return_value=stuck_state), \
-             patch("src.bot.recovery.save_state") as mock_save:
-            await recover_stuck_state(bot)
-            # Should have been called with stage reset
-            saved = mock_save.call_args[0][0]
-            assert saved["stage"] == "script_review"
-
-    @pytest.mark.asyncio
-    async def test_script_generating_recovered(self):
-        """script_generating on startup must be reset to idle."""
-        from src.bot.recovery import recover_stuck_state
-
-        bot = MagicMock()
-        errors_channel = AsyncMock()
-        bot.get_channel.return_value = errors_channel
-
-        stuck_state = {"stage": "script_generating", "current_episode": "EP003"}
+        stuck_state = {"stage": "pipeline_running", "current_episode": "EP005"}
 
         with patch("src.bot.recovery.load_state", return_value=stuck_state), \
              patch("src.bot.recovery.save_state") as mock_save:
             await recover_stuck_state(bot)
             saved = mock_save.call_args[0][0]
             assert saved["stage"] == "idle"
-
-    @pytest.mark.asyncio
-    async def test_publishing_recovered(self):
-        """publishing on startup must be reset to video_review."""
-        from src.bot.recovery import recover_stuck_state
-
-        bot = MagicMock()
-        errors_channel = AsyncMock()
-        bot.get_channel.return_value = errors_channel
-
-        stuck_state = {"stage": "publishing", "current_episode": "EP006"}
-
-        with patch("src.bot.recovery.load_state", return_value=stuck_state), \
-             patch("src.bot.recovery.save_state") as mock_save:
-            await recover_stuck_state(bot)
-            saved = mock_save.call_args[0][0]
-            assert saved["stage"] == "video_review"
 
     @pytest.mark.asyncio
     async def test_recovery_posts_to_errors_channel(self):
@@ -323,23 +288,23 @@ class TestStartupRecovery:
         errors_channel = AsyncMock()
         bot.get_channel.return_value = errors_channel
 
-        stuck_state = {"stage": "video_generating", "current_episode": "EP005"}
+        stuck_state = {"stage": "pipeline_running", "current_episode": "EP005"}
 
         with patch("src.bot.recovery.load_state", return_value=stuck_state), \
              patch("src.bot.recovery.save_state"):
             await recover_stuck_state(bot)
             errors_channel.send.assert_called()
             sent_text = errors_channel.send.call_args[0][0]
-            assert "video_generating" in sent_text or "recover" in sent_text.lower()
+            assert "pipeline_running" in sent_text or "recover" in sent_text.lower()
 
     @pytest.mark.asyncio
-    async def test_human_review_states_not_reset(self):
-        """States waiting on human input (ideas_posted, script_review, video_review) must NOT be reset."""
+    async def test_human_waiting_states_not_reset(self):
+        """v2: States waiting on human input (ideas_posted) must NOT be reset."""
         from src.bot.recovery import recover_stuck_state
 
         bot = MagicMock()
 
-        for stage in ["ideas_posted", "script_review", "video_review"]:
+        for stage in ["idle", "ideas_posted", "done"]:
             with patch("src.bot.recovery.load_state", return_value={"stage": stage}), \
                  patch("src.bot.recovery.save_state") as mock_save:
                 await recover_stuck_state(bot)

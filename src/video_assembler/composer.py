@@ -1,8 +1,14 @@
-"""Video composer — orchestrates full episode assembly from script to MP4."""
+"""Video composer — orchestrates full episode assembly from script to MP4.
 
-import json
+v2 changes:
+- Frame streaming: pipes raw pixel data to FFmpeg stdin (no intermediate PNGs)
+- 16:9 horizontal format (1920x1080) as default, with dual format support
+- End card generator yields PIL Images
+- Eliminates disk I/O for thousands of frame PNGs
+- Optional render_config for horizontal/vertical output
+"""
+
 import os
-import shutil
 import subprocess
 
 from src.video_assembler.scene_builder import build_scene_frames, FRAME_RATE, FRAME_WIDTH, FRAME_HEIGHT
@@ -19,19 +25,25 @@ END_CARD_BG_COLOR = (26, 26, 58)
 END_CARD_TEXT_COLOR = (255, 255, 255)
 
 
-def _generate_end_card_frames(episode_title, episode_id, output_dir, frame_offset):
-    """Generate end card frames with episode title and series branding.
+def generate_end_card_frames(episode_title, episode_id, render_config=None):
+    """Generate end card frames as a generator of PIL Images.
 
     Args:
         episode_title: Episode title text.
         episode_id: e.g., "EP001"
-        output_dir: Directory to save frames.
-        frame_offset: Starting frame number.
+        render_config: Optional RenderConfig for dual format. Defaults to HORIZONTAL.
 
-    Returns:
-        List of frame paths.
+    Yields:
+        PIL Image (RGB, config width x height) for each frame.
     """
-    os.makedirs(output_dir, exist_ok=True)
+    # Resolve dimensions from render_config or module defaults
+    if render_config is not None:
+        fw = render_config.width
+        fh = render_config.height
+    else:
+        fw = FRAME_WIDTH
+        fh = FRAME_HEIGHT
+
     total_frames = END_CARD_DURATION_SECONDS * FRAME_RATE
 
     # Load font
@@ -48,21 +60,24 @@ def _generate_end_card_frames(episode_title, episode_id, output_dir, frame_offse
     template_path = os.path.join(ASSETS_DIR, "ui", "endcard_template.png")
     if os.path.exists(template_path):
         base = Image.open(template_path).convert("RGB")
-        if base.size != (FRAME_WIDTH, FRAME_HEIGHT):
-            base = base.resize((FRAME_WIDTH, FRAME_HEIGHT), Image.NEAREST)
+        if base.size != (fw, fh):
+            base = base.resize((fw, fh), Image.NEAREST)
     else:
-        base = Image.new("RGB", (FRAME_WIDTH, FRAME_HEIGHT), END_CARD_BG_COLOR)
+        base = Image.new("RGB", (fw, fh), END_CARD_BG_COLOR)
 
     draw = ImageDraw.Draw(base)
+
+    # Center vertically — episode ID at ~40%, title at ~50%, brand at ~65%
+    center_y = fh // 2
 
     # Draw episode ID
     ep_text = episode_id
     ep_bbox = draw.textbbox((0, 0), ep_text, font=ep_font)
     ep_w = ep_bbox[2] - ep_bbox[0]
-    draw.text(((FRAME_WIDTH - ep_w) // 2, 800), ep_text, fill=END_CARD_TEXT_COLOR, font=ep_font)
+    draw.text(((fw - ep_w) // 2, center_y - 80), ep_text, fill=END_CARD_TEXT_COLOR, font=ep_font)
 
     # Draw title (word-wrapped)
-    max_title_width = FRAME_WIDTH - 200
+    max_title_width = fw - 400
     words = episode_title.split()
     lines = []
     current = ""
@@ -78,48 +93,52 @@ def _generate_end_card_frames(episode_title, episode_id, output_dir, frame_offse
     if current:
         lines.append(current)
 
-    y = 860
+    y = center_y - 40
     for line in lines:
         bbox = draw.textbbox((0, 0), line, font=title_font)
         w = bbox[2] - bbox[0]
-        draw.text(((FRAME_WIDTH - w) // 2, y), line, fill=END_CARD_TEXT_COLOR, font=title_font)
+        draw.text(((fw - w) // 2, y), line, fill=END_CARD_TEXT_COLOR, font=title_font)
         y += 30
 
     # Brand text
     brand = "BLOBTOSHI"
     brand_bbox = draw.textbbox((0, 0), brand, font=brand_font)
     brand_w = brand_bbox[2] - brand_bbox[0]
-    draw.text(((FRAME_WIDTH - brand_w) // 2, 1050), brand, fill=(150, 150, 200), font=brand_font)
+    draw.text(((fw - brand_w) // 2, center_y + 80), brand, fill=(150, 150, 200), font=brand_font)
 
-    # Save the same frame for all end card frames (static)
-    frame_paths = []
-    for i in range(total_frames):
-        global_num = frame_offset + i
-        path = os.path.join(output_dir, f"frame_{global_num:05d}.png")
-        base.save(path)
-        frame_paths.append(path)
-
-    return frame_paths
+    # Yield the same frame for all end card frames (static)
+    for _ in range(total_frames):
+        yield base.copy()
 
 
-def compose_episode(script, music_path=None, output_name=None):
+def compose_episode(script, music_path=None, output_name=None, render_config=None):
     """Compose a full episode video from a script.
 
-    Full pipeline:
-    1. Build frames for each scene (backgrounds + characters + text boxes)
-    2. Generate end card frames
+    v2 pipeline:
+    1. Stream scene frames directly to FFmpeg via stdin (no PNGs on disk)
+    2. Generate end card frames in-memory
     3. Mix audio (music + SFX + text blips)
-    4. Combine frames into video via FFmpeg
-    5. Mux audio onto video
+    4. Mux audio onto video
 
     Args:
         script: Full episode script dict.
         music_path: Path to background music. If None, uses main_theme.
         output_name: Output filename (without extension). Defaults to episode_id.
+        render_config: Optional RenderConfig for dual format. Defaults to HORIZONTAL.
 
     Returns:
         Path to the final MP4 file.
     """
+    # Resolve dimensions from render_config or module defaults
+    if render_config is not None:
+        fw = render_config.width
+        fh = render_config.height
+        format_label = render_config.label
+    else:
+        fw = FRAME_WIDTH
+        fh = FRAME_HEIGHT
+        format_label = None
+
     episode_id = script.get("episode_id", "EP000")
     title = script.get("title", "Untitled Episode")
     scenes = script.get("scenes", [])
@@ -127,56 +146,45 @@ def compose_episode(script, music_path=None, output_name=None):
     if output_name is None:
         output_name = episode_id.lower()
 
+    # Append format label to output name when render_config is explicit
+    if format_label:
+        full_output_name = f"{output_name}_{format_label}"
+    else:
+        full_output_name = output_name
+
     # Create working directories
-    episode_dir = os.path.join(OUTPUT_DIR, output_name)
-    frames_dir = os.path.join(episode_dir, "frames")
+    episode_dir = os.path.join(OUTPUT_DIR, full_output_name)
     audio_dir = os.path.join(episode_dir, "audio")
-    os.makedirs(frames_dir, exist_ok=True)
     os.makedirs(audio_dir, exist_ok=True)
 
     # Default music
     if music_path is None:
         music_path = os.path.join(ASSETS_DIR, "music", "main_theme.wav")
 
-    print(f"[Composer] Building {episode_id}: {title}")
+    print(f"[Composer] Building {episode_id}: {title} ({format_label or 'default'})")
 
-    # 1. Build scene frames
-    all_frame_paths = []
+    # Collect scene generators and metadata before starting FFmpeg
+    scene_data = []
     all_sfx_events = []
-    frame_offset = 0
+    total_frame_count = 0
 
     for i, scene in enumerate(scenes):
-        print(f"[Composer]   Scene {i+1}/{len(scenes)}: {scene.get('description', '')[:50]}...")
-        scene_dir = os.path.join(frames_dir, f"scene_{i:02d}")
-
-        scene_frames, sfx_events, blip_events = build_scene_frames(
-            scene, scene_dir, frame_offset=frame_offset
+        print(f"[Composer]   Scene {i+1}/{len(scenes)}: {scene.get('action_description', scene.get('description', ''))[:50]}...")
+        frame_iter, num_frames, sfx_events = build_scene_frames(
+            scene, frame_offset=total_frame_count, render_config=render_config
         )
-
-        all_frame_paths.extend(scene_frames)
+        scene_data.append((frame_iter, num_frames))
         all_sfx_events.extend(sfx_events)
-        frame_offset += len(scene_frames)
+        total_frame_count += num_frames
 
-    # 2. Generate end card
-    print("[Composer]   Generating end card...")
-    endcard_dir = os.path.join(frames_dir, "endcard")
-    endcard_frames = _generate_end_card_frames(title, episode_id, endcard_dir, frame_offset)
-    all_frame_paths.extend(endcard_frames)
+    # End card
+    end_card_frames = END_CARD_DURATION_SECONDS * FRAME_RATE
+    total_frame_count += end_card_frames
 
-    # 3. Copy all frames to a single sequential directory for FFmpeg
-    final_frames_dir = os.path.join(episode_dir, "final_frames")
-    os.makedirs(final_frames_dir, exist_ok=True)
+    total_duration_ms = int((total_frame_count / FRAME_RATE) * 1000)
+    print(f"[Composer]   Total frames: {total_frame_count} ({total_duration_ms}ms)")
 
-    for idx, src_path in enumerate(all_frame_paths):
-        dst_path = os.path.join(final_frames_dir, f"frame_{idx:05d}.png")
-        if os.path.abspath(src_path) != os.path.abspath(dst_path):
-            shutil.copy2(src_path, dst_path)
-
-    total_frames = len(all_frame_paths)
-    total_duration_ms = int((total_frames / FRAME_RATE) * 1000)
-    print(f"[Composer]   Total frames: {total_frames} ({total_duration_ms}ms)")
-
-    # 4. Mix audio
+    # Mix audio
     print("[Composer]   Mixing audio...")
     blip_events = generate_blip_events(script, FRAME_RATE)
     audio_path = os.path.join(audio_dir, "mixed_audio.wav")
@@ -189,29 +197,65 @@ def compose_episode(script, music_path=None, output_name=None):
         output_path=audio_path,
     )
 
-    # 5. Render frames to video via FFmpeg
-    print("[Composer]   Encoding video...")
+    # Stream frames to FFmpeg
+    print("[Composer]   Encoding video (streaming)...")
     temp_video_path = os.path.join(episode_dir, "temp_video.mp4")
-    final_video_path = os.path.join(episode_dir, f"{output_name}.mp4")
+    final_video_path = os.path.join(episode_dir, f"{full_output_name}.mp4")
 
-    # Frames to video (no audio)
-    ffmpeg_frames_cmd = [
-        "ffmpeg", "-y",
-        "-framerate", str(FRAME_RATE),
-        "-i", os.path.join(final_frames_dir, "frame_%05d.png"),
-        "-c:v", "libx264",
-        "-pix_fmt", "yuv420p",
-        "-preset", "medium",
-        "-crf", "18",
-        temp_video_path,
-    ]
+    # FFmpeg process reads raw RGB frames from stdin
+    ffmpeg_proc = subprocess.Popen(
+        [
+            "ffmpeg", "-y",
+            "-f", "rawvideo",
+            "-vcodec", "rawvideo",
+            "-s", f"{fw}x{fh}",
+            "-pix_fmt", "rgb24",
+            "-r", str(FRAME_RATE),
+            "-i", "pipe:0",
+            "-c:v", "libx264",
+            "-pix_fmt", "yuv420p",
+            "-preset", "medium",
+            "-crf", "18",
+            temp_video_path,
+        ],
+        stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
 
-    result = subprocess.run(ffmpeg_frames_cmd, capture_output=True, text=True)
-    if result.returncode != 0:
-        print(f"[Composer] FFmpeg frames error: {result.stderr[:500]}")
-        raise RuntimeError(f"FFmpeg frame encoding failed: {result.stderr[:200]}")
+    frames_written = 0
 
-    # 6. Mux audio onto video
+    # Stream scene frames
+    for frame_iter, num_frames in scene_data:
+        for frame in frame_iter:
+            # Ensure frame is RGB and correct size
+            if frame.mode != "RGB":
+                frame = frame.convert("RGB")
+            if frame.size != (fw, fh):
+                frame = frame.resize((fw, fh), Image.NEAREST)
+            ffmpeg_proc.stdin.write(frame.tobytes())
+            frames_written += 1
+
+    # Stream end card frames
+    print("[Composer]   Generating end card...")
+    for frame in generate_end_card_frames(title, episode_id, render_config=render_config):
+        if frame.mode != "RGB":
+            frame = frame.convert("RGB")
+        ffmpeg_proc.stdin.write(frame.tobytes())
+        frames_written += 1
+
+    # Close stdin and wait for FFmpeg to finish
+    ffmpeg_proc.stdin.close()
+    ffmpeg_proc.wait()
+    stderr = ffmpeg_proc.stderr.read()
+
+    if ffmpeg_proc.returncode != 0:
+        print(f"[Composer] FFmpeg encoding error: {stderr.decode()[:500]}")
+        raise RuntimeError(f"FFmpeg frame encoding failed: {stderr.decode()[:200]}")
+
+    print(f"[Composer]   Frames streamed: {frames_written}")
+
+    # Mux audio onto video
     print("[Composer]   Muxing audio...")
     ffmpeg_mux_cmd = [
         "ffmpeg", "-y",

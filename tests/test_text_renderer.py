@@ -71,10 +71,12 @@ class TestBoxConstants:
     """Test that visual spec constants match PRD."""
 
     def test_box_width(self):
-        assert BOX_WIDTH == 900
+        # v2: wider text box for 16:9 widescreen format
+        assert BOX_WIDTH == 1200
 
     def test_box_height(self):
-        assert BOX_HEIGHT == 200
+        # v2: slightly shorter text box for 16:9
+        assert BOX_HEIGHT == 180
 
     def test_font_size(self):
         assert FONT_SIZE == 16
@@ -96,16 +98,18 @@ class TestRenderDialogueFrames:
         assert isinstance(frames, list)
         assert len(frames) > 0
 
-    def test_frames_are_png_files(self, output_dir):
+    def test_frames_are_pil_images(self, output_dir):
+        """v2: render_dialogue_frames returns PIL Images, not file paths."""
+        from PIL import Image
         frames = render_dialogue_frames(
             character_id="pens",
             text="hi",
             output_dir=output_dir,
             frame_rate=30,
         )
-        for path in frames:
-            assert path.endswith(".png")
-            assert os.path.exists(path)
+        for frame in frames:
+            assert isinstance(frame, Image.Image)
+            assert frame.mode == "RGBA"
 
     def test_includes_hold_frames(self, output_dir):
         """Should have extra frames at the end holding the full text."""
@@ -134,12 +138,16 @@ class TestRenderDialogueFrames:
         )
         assert len(long_frames) > len(short_frames)
 
-    def test_creates_output_directory(self, output_dir):
+    def test_output_dir_ignored_in_v2(self, output_dir):
+        """v2: output_dir parameter is deprecated and ignored (frames are in-memory)."""
+        from PIL import Image
         nested = os.path.join(output_dir, "nested", "deep")
-        render_dialogue_frames(
+        frames = render_dialogue_frames(
             character_id="pens",
             text="test",
             output_dir=nested,
             frame_rate=30,
         )
-        assert os.path.isdir(nested)
+        # Should return PIL Images regardless of output_dir
+        assert len(frames) > 0
+        assert isinstance(frames[0], Image.Image)

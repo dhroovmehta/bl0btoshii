@@ -85,12 +85,15 @@ def _youtube_get_access_token():
     return data["access_token"], None
 
 
-async def publish_to_youtube(video_path, metadata):
-    """Upload a video to YouTube Shorts.
+async def publish_to_youtube(video_path, metadata, is_short=False):
+    """Upload a video to YouTube (regular or Shorts).
 
     Args:
         video_path: Path to the MP4 file.
         metadata: YouTube metadata dict with title, description, tags.
+        is_short: If True, ensures #Shorts tag is in description (YouTube Short).
+                  If False (default), strips #Shorts from title and description
+                  (regular YouTube video).
 
     Returns:
         Dict with result: {"success": bool, "post_url": str or None, "error": str or None}
@@ -118,9 +121,15 @@ async def publish_to_youtube(video_path, metadata):
     if isinstance(tags, str):
         tags = [t.strip() for t in tags.split(",")]
 
-    # Append #Shorts to description for YouTube Shorts classification
-    if "#Shorts" not in description:
-        description = f"{description}\n\n#Shorts".strip()
+    if is_short:
+        # YouTube Short — ensure #Shorts is in description
+        if "#Shorts" not in description:
+            description = f"{description}\n\n#Shorts".strip()
+    else:
+        # Regular YouTube video — strip #Shorts from title and description
+        import re
+        title = re.sub(r'\s*#Shorts\b', '', title).strip()
+        description = re.sub(r'\s*#Shorts\b', '', description).strip()
 
     video_metadata = {
         "snippet": {

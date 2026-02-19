@@ -4,6 +4,146 @@ Architectural and design decisions made during development.
 
 ---
 
+## D-023: YouTube dual-publish (2026-02-18)
+
+**Context:** After Stage 4 added dual format rendering (horizontal 1920x1080 + vertical 1080x1920), both videos were uploaded to Google Drive but only one was published to YouTube. The horizontal video should be a regular YouTube video; the vertical video should be a YouTube Short. YouTube classifies Shorts by the `#Shorts` hashtag in the description plus vertical aspect ratio.
+
+**Decision:** Added `is_short` parameter to `publish_to_youtube()`. When `is_short=False` (default), `#Shorts` is stripped from both title and description using regex. When `is_short=True`, `#Shorts` is kept/appended. Pipeline Step 7 now calls `publish_to_youtube` twice: once for horizontal (regular YouTube, `is_short=False`) and once for vertical (YouTube Short, `is_short=True`). Each upload has independent error handling and Discord notifications.
+
+**Alternative considered:** Separate metadata generation for regular vs. Shorts (different titles, descriptions). Rejected — the metadata generator already produces good content. Stripping `#Shorts` at the publisher level is simpler and keeps the metadata generator format-agnostic. If distinct metadata is needed later, it can be added without changing the publisher.
+
+---
+
+## D-022: Dialogue ducking (2026-02-18)
+
+**Context:** Music at a constant volume competed with dialogue text. Viewers couldn't focus on reading when the music was prominent. Professional video and game audio uses "ducking" — automatically lowering background music when dialogue is active.
+
+**Decision:** Added `generate_ducking_schedule()` to extract dialogue time ranges from the script. `_apply_ducking()` splits the music track at dialogue boundaries and applies an additional -6 dB during those segments. Ducking is enabled by default in `mix_episode_audio()` but can be disabled via `enable_ducking=False`. Combined with the base music volume reduction from -12 dB to -20 dB, music during dialogue sits at -26 dB — barely audible, letting the text and blips take focus.
+
+**Alternative considered:** Sidechain compression (real-time volume reduction triggered by blip audio). Rejected — overkill for a pre-rendered pipeline. Pre-computed ducking schedule from the script is simpler, deterministic, and testable.
+
+---
+
+## D-021: Dual format rendering (2026-02-18)
+
+**Context:** YouTube Shorts, TikTok, and Reels need 9:16 vertical video. Regular YouTube works best at 16:9 horizontal. Rendering a single format means missing half the distribution channels. Re-rendering from scratch doubles compute time but guarantees both outputs from the same script.
+
+**Decision:** Introduced `RenderConfig` dataclass with `HORIZONTAL` (1920x1080) and `VERTICAL` (1080x1920) presets. All rendering functions (`render_dialogue_frames`, `build_scene_frames`, `compose_episode`, `generate_end_card_frames`) accept an optional `render_config` parameter. Pipeline calls `compose_episode` twice — once per format. Both videos uploaded to Google Drive. v1 backgrounds (1080x1920) map naturally to vertical format with no scaling; horizontal format resizes them. Parallax folders work for both.
+
+**Alternative considered:** Crop-based approach (render at high res, crop differently for each format). Rejected — cropping a 16:9 frame to 9:16 loses 75% of the image, requiring completely different composition. Two full renders with format-specific layout is the right approach.
+
+---
+
+## D-020: Parallax background engine (2026-02-18)
+
+**Context:** v1 backgrounds were single flat images. Videos looked static and lacked visual depth. Modern pixel art games use parallax scrolling (multi-layer backgrounds moving at different speeds) to create depth illusion.
+
+**Decision:** Background system checks for `assets/backgrounds/{location}/` folder with ordered layers: `background.png` (depth 0.2), `midground.png` (depth 0.5), `foreground.png` (depth 0.8), `effects.png` (depth 0.9). Falls back to single `{location}.png` file. Camera movements shift layers at different parallax rates.
+
+**Alternative considered:** Shader-based depth-of-field effect. Rejected — too complex for 2D pixel art pipeline. Layer-based parallax is the industry standard for 2D games and animation.
+
+---
+
+## D-019: Frame streaming to FFmpeg (2026-02-18)
+
+**Context:** v1 saved every frame as a PNG file to disk, then FFmpeg read them back. For a 60-second episode at 30fps, that's 1800 PNG writes + 1800 PNG reads. Slow, creates thousands of temp files, and uses significant disk space.
+
+**Decision:** Pipe raw RGB pixel data directly to FFmpeg's stdin via `subprocess.Popen`. Scene builder yields PIL Images via generator. Composer writes `frame.tobytes()` to pipe. Eliminates all intermediate frame files.
+
+**Alternative considered:** Keep file-based but use RAM disk. Rejected — streaming is simpler, faster, and doesn't require OS-level configuration.
+
+---
+
+## D-018: 16:9 horizontal as primary format (2026-02-18)
+
+**Context:** v1 output was 1080x1920 (9:16 vertical only, for YouTube Shorts/TikTok/Reels). YouTube regular videos perform better as 16:9 horizontal. Most content creators produce horizontal as primary and crop for vertical.
+
+**Decision:** Primary render format is 1920x1080 (16:9 horizontal). Stage 4 will add automatic vertical (9:16) output from the same scene data. v1 character positions auto-scaled from 1080x1920 coordinates via `scale_position_v1()`.
+
+**Alternative considered:** Keep vertical as primary. Rejected because YouTube regular content (horizontal) has better algorithmic reach and watch time than Shorts.
+
+---
+
+## D-017: Auto-publish both YouTube regular + YouTube Shorts (2026-02-18)
+
+**Context:** v1 only published to YouTube Shorts (vertical). With the new dual-format system, we produce both a horizontal (16:9) and vertical (9:16) video. YouTube regular content gets more algorithmic reach and longer watch sessions than Shorts.
+
+**Decision:** Call `publish_to_youtube()` twice per episode — once for the horizontal video (regular YouTube upload) and once for the vertical video (YouTube Shorts). Both use the same metadata with minor format-specific adjustments (#Shorts appended for vertical). YouTube privacy set to "unlisted" during testing, "public" for production.
+
+**Alternative considered:** Only publishing horizontal to YouTube and vertical to Shorts/TikTok/Reels. Rejected because YouTube Shorts has a separate discovery algorithm that drives significant traffic.
+
+---
+
+## D-016: Mood-based music selection (2026-02-18)
+
+**Context:** v1 variant system used per-variant music (main_theme, tense_theme, upbeat_theme) to differentiate 3 video variants. With variants removed, we need a single music track per episode that matches the story tone.
+
+**Decision:** Script includes a `mood` field (playful, calm, tense) set during generation. The audio mixer auto-selects the matching track. Three music tracks needed: `playful.wav`, `calm.wav`, `tense.wav`. Zero picks from free tracks I recommend. Music ducking: reduce by additional -5dB during dialogue.
+
+**Trade-off:** Less variety per episode, but a well-matched single track beats three random options. If the mood detection is wrong, the story still works — it's background music, not a score.
+
+---
+
+## D-015: Stream frames to FFmpeg via stdin — no temp files (2026-02-18)
+
+**Context:** v1 saves every rendered frame as an individual PNG to disk, then runs FFmpeg over the directory. For a 30-second video at 30fps = 900 frames × 1920x1080 RGBA PNGs. On the 1GB VPS, this caused disk pressure and memory issues, especially when rendering 3 variants (2700 frames).
+
+**Decision:** Pipe rendered frames directly to FFmpeg's stdin via `subprocess.Popen`. Each frame is encoded to raw bytes, written to FFmpeg, then garbage collected. No temp frame files ever touch disk. Only the final MP4 is saved.
+
+**Alternative considered:** Keep temp files but clean up between variants. Rejected because even a single variant's 900 frames at 1920x1080 is ~7GB of raw RGBA data on disk.
+
+---
+
+## D-014: Parallax background engine with backward compatibility (2026-02-18)
+
+**Context:** v1 uses single flat background images per location. v2 upgrades to multi-layer parallax backgrounds (3-4 layers per location) for depth. Zero creates new assets incrementally using Nano Banana Pro — not all locations will have layers at once.
+
+**Decision:** New background loading checks for directory first (`backgrounds/{location}/background.png`, `midground.png`, `foreground.png`, optional `effects.png`). If directory doesn't exist, falls back to v1 flat file (`backgrounds/{location}.png`). Camera system controls parallax by moving layers at different speeds relative to camera position.
+
+**Trade-off:** Backward compatibility adds a code path that eventually becomes dead code. Acceptable because Zero creates assets at his own pace and we can't block on art.
+
+---
+
+## D-013: Dual video format — 16:9 horizontal + 9:16 vertical (2026-02-18)
+
+**Context:** v1 rendered only 9:16 vertical (1080x1920). YouTube penalizes vertical content in regular feed. TikTok and Reels require vertical. Zero wants both.
+
+**Decision:** Render both formats from the same scene data. Horizontal (1920x1080) for regular YouTube. Vertical (1080x1920) for YouTube Shorts, TikTok, and Instagram Reels. Layout configs (text box position, character Y positions, text box size) vary per format. Both rendered sequentially using the same scene frames — camera, parallax, dialogue are identical, only layout differs.
+
+**Impact:** ~2x render time vs single format. On a 2-4GB VPS, each format takes ~15-20 min = ~30-40 min total (vs ~45 min for v1's 3 variants). Net improvement since we render 2 videos instead of 3.
+
+---
+
+## D-012: Remove video variants — replace with dual-format output (2026-02-18)
+
+**Context:** v1 generated 3 video variants (Standard, Upbeat, Tense) with different music and pacing, posted to #video-preview for Zero to pick. This tripled render time, required a human selection step, and added a failure point.
+
+**Decision:** Remove variant system entirely. One script → one set of scene data → two output formats (horizontal + vertical). No human video selection step. The pipeline goes straight from video generation to Drive upload and YouTube publish.
+
+**What's removed:** `variant_generator.py` (VARIANT_PRESETS, generate_variants, generate_single_variant, generate_custom_variant), #video-preview channel handler, video selection state machine states.
+
+---
+
+## D-011: Remove script review step (2026-02-18)
+
+**Context:** v1 published each script to Notion, posted the link to Discord #script-review, and waited for Zero to approve or submit edits. This required checking Notion, reading the full script, and typing "approve" — every day. Zero wants to just pick an idea and get a video.
+
+**Decision:** Remove script review entirely. After Zero picks an idea, the pipeline generates the script and immediately proceeds to video generation. No human review, no Notion link, no edit loop.
+
+**Trade-off:** Zero loses the ability to tweak scripts before rendering. If a script is bad, the video is also bad. Acceptable because: (a) the story generator has been reliable in producing good scripts, (b) Zero rarely made edits in v1, (c) the time cost of daily review outweighs the occasional bad script.
+
+---
+
+## D-010: Remove Notion integration entirely (2026-02-18)
+
+**Context:** v1 published scripts to Notion and was planned to publish analytics reports there. Notion added a dependency (API key, workspace setup, page formatting), an extra failure point, and another thing to check. Zero never opened the Notion pages — he read the script summary in Discord.
+
+**Decision:** Remove all Notion code. Scripts are generated and used internally only — the pipeline posts a brief summary to Discord (episode ID, title, scene count, duration) as a notification, not for review. Analytics reports (future feature) will post directly to Discord.
+
+**What's removed:** `src/notion/` directory (client.py, script_publisher.py, report_publisher.py), NOTION_API_KEY and NOTION_SCRIPTS_DB_ID env vars, Notion-related Discord messages.
+
+---
+
 ## D-009: Increase PER_VARIANT_TIMEOUT to 60 minutes (2026-02-17)
 
 **Context:** After the 12 cps pacing fix, each scene generates ~3x more frames. On the 1GB VPS, Pillow frame-by-frame rendering takes 8-15 min per scene. With 3 scenes, a single variant can take 45+ minutes.

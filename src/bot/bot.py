@@ -16,8 +16,8 @@ AUTHORIZED_USER_ID = int(os.getenv("DISCORD_AUTHORIZED_USER_ID", "0"))
 # Channel IDs
 CHANNEL_IDS = {
     "idea_selection": int(os.getenv("DISCORD_CHANNEL_IDEA_SELECTION", "0")),
-    "script_review": int(os.getenv("DISCORD_CHANNEL_SCRIPT_REVIEW", "0")),
-    "video_preview": int(os.getenv("DISCORD_CHANNEL_VIDEO_PREVIEW", "0")),
+    # v2: #script-review repurposed as #pipeline-status (same env var, renamed in Discord)
+    "pipeline_status": int(os.getenv("DISCORD_CHANNEL_SCRIPT_REVIEW", "0")),
     "publishing_log": int(os.getenv("DISCORD_CHANNEL_PUBLISHING_LOG", "0")),
     "weekly_analytics": int(os.getenv("DISCORD_CHANNEL_WEEKLY_ANALYTICS", "0")),
     "errors": int(os.getenv("DISCORD_CHANNEL_ERRORS", "0")),
@@ -76,18 +76,13 @@ async def on_message(message):
         return
 
     # Route to the correct handler based on channel
+    # v2: script_review and video_preview handlers removed (D-011, D-012)
     from src.bot.handlers.idea_selection import handle_idea_selection
-    from src.bot.handlers.script_review import handle_script_review
-    from src.bot.handlers.video_preview import handle_video_preview
     from src.bot.handlers.publishing_log import handle_publishing_log
     from src.bot.handlers.analytics import handle_analytics
 
     if channel_id == CHANNEL_IDS["idea_selection"]:
         await handle_idea_selection(message, bot)
-    elif channel_id == CHANNEL_IDS["script_review"]:
-        await handle_script_review(message, bot)
-    elif channel_id == CHANNEL_IDS["video_preview"]:
-        await handle_video_preview(message, bot)
     elif channel_id == CHANNEL_IDS["publishing_log"]:
         await handle_publishing_log(message, bot)
     elif channel_id == CHANNEL_IDS["weekly_analytics"]:

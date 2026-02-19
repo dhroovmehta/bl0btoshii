@@ -18,7 +18,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from PIL import Image
 from src.video_assembler.sprite_manager import load_sprite, composite_character
-from src.video_assembler.scene_builder import load_background, FRAME_WIDTH, FRAME_HEIGHT
+from src.video_assembler.scene_builder import load_background, FRAME_WIDTH, FRAME_HEIGHT, TEXT_BOX_Y
 from src.text_renderer.renderer import render_dialogue_frames
 
 OUTPUT_DIR = os.path.join(os.path.dirname(__file__), "..", "output", "asset_test")
@@ -131,9 +131,10 @@ def test_full_frame():
         frame_rate=30,
     )
     if text_frames:
-        text_box = Image.open(text_frames[-1]).convert("RGBA")
+        # v2: render_dialogue_frames returns PIL Images directly
+        text_box = text_frames[-1].convert("RGBA")
         tx = (FRAME_WIDTH - text_box.width) // 2
-        ty = 1680
+        ty = TEXT_BOX_Y
         frame.paste(text_box, (tx, ty), text_box)
 
     os.makedirs(OUTPUT_DIR, exist_ok=True)

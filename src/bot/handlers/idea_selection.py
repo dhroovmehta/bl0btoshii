@@ -1,15 +1,40 @@
-"""Handler for #idea-selection channel.
+"""Handler for #idea-selection channel — v2.
 
-Bot posts 2-3 episode ideas daily. User picks one by replying 1, 2, or 3.
-On selection, triggers script generation and posts result to #script-review.
+Bot posts 3 episode ideas daily. User picks one by replying 1, 2, or 3.
+On selection, runs the full automated pipeline:
+  script → video → Drive → YouTube → done.
+
+No human review steps. Status updates go to #pipeline-status.
+Errors go to #errors.
 """
 
-import re
 import asyncio
+import json
 import os
+import re
 from datetime import datetime
 
 from src.bot.state import load_state, save_state
+
+# Lazy imports — these are imported at the top of _run_full_pipeline so tests
+# can patch them at the module level (src.bot.handlers.idea_selection.XXX).
+# Using top-level imports from heavy modules (video_assembler, publisher) would
+# slow down bot startup and make patching harder.
+from src.story_generator.engine import generate_episode, assign_episode_number
+from src.pipeline.orchestrator import (
+    check_asset_availability, check_video_quality,
+    collect_rendering_warnings, clear_all_rendering_warnings,
+)
+from src.video_assembler.composer import compose_episode
+from src.video_assembler.render_config import HORIZONTAL, VERTICAL
+from src.metadata.generator import generate_metadata, safety_check
+from src.publisher.drive import upload_to_drive, format_drive_filename
+from src.publisher.platforms import publish_to_youtube
+from src.continuity.engine import log_episode
+from src.pipeline.orchestrator import log_episode_to_index
+
+ASSETS_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "..", "assets")
+DATA_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "..", "data")
 
 
 def parse_selection(text):
@@ -41,7 +66,7 @@ def parse_selection(text):
 
 
 async def post_daily_ideas(channel):
-    """Generate and post 2-3 episode ideas to #idea-selection."""
+    """Generate and post 3 episode ideas to #idea-selection."""
     from src.story_generator.slot_machine import generate_daily_ideas
 
     ideas = generate_daily_ideas(3)
@@ -111,86 +136,309 @@ async def handle_idea_selection(message, bot):
         )
         return
 
-    # Save selection
+    # Save selection and kick off the full pipeline
     selected_idea = ideas[selection]
     state["selected_idea_index"] = selection
-    state["stage"] = "script_generating"
+    state["stage"] = "pipeline_running"
     save_state(state)
 
-    await message.channel.send(f"Option {selection + 1} selected. Generating script now...")
+    await message.channel.send(
+        f"Option {selection + 1} selected. Starting full pipeline..."
+    )
 
-    # Generate script in background
+    # Run full pipeline in background
     from src.bot.tasks import safe_task
     safe_task(
-        _generate_and_post_script(selected_idea, bot),
+        _run_full_pipeline(selected_idea, bot),
         error_channel=message.channel,
         bot=bot,
-        stage="Script Generation",
+        stage="Pipeline",
     )
 
 
-async def _generate_and_post_script(idea, bot):
-    """Generate a script with Claude and post to #script-review."""
-    from src.story_generator.engine import generate_episode
-    from src.notion.script_publisher import publish_script
+async def _run_full_pipeline(idea, bot):
+    """Run the full automated pipeline: script -> video -> Drive -> YouTube.
 
-    script_channel_id = int(os.getenv("DISCORD_CHANNEL_SCRIPT_REVIEW", "0"))
-    script_channel = bot.get_channel(script_channel_id)
+    Steps:
+      1. Generate script with Claude
+      2. Asset check
+      3. Render video
+      4. Quality check (warn, don't block)
+      5. Generate metadata + safety check
+      6. Upload to Google Drive (assigns real EP number on success)
+      7. Publish to YouTube (skipped if safety check failed)
+      8. Log continuity + episode index
+      9. Mark pipeline done
 
-    idea_channel_id = int(os.getenv("DISCORD_CHANNEL_IDEA_SELECTION", "0"))
-    idea_channel = bot.get_channel(idea_channel_id)
+    Sends progress notifications to #pipeline-status at each step.
+    Sends errors to #errors on any failure.
+    """
+    from src.bot.bot import CHANNEL_IDS
+
+    status_channel = bot.get_channel(CHANNEL_IDS.get("pipeline_status"))
+    idea_channel = bot.get_channel(CHANNEL_IDS.get("idea_selection"))
+
+    state = load_state()
 
     try:
-        # Run blocking Claude API call in a thread
         loop = asyncio.get_event_loop()
+
+        # ------------------------------------------------------------------
+        # Step 1: Generate script
+        # ------------------------------------------------------------------
         script, errors = await loop.run_in_executor(None, generate_episode, idea)
 
         if not script:
-            await idea_channel.send(f"Script generation failed: {errors}")
-            state = load_state()
+            if idea_channel:
+                await idea_channel.send(f"Script generation failed: {errors}")
             state["stage"] = "idle"
             save_state(state)
             return
 
-        # Publish to Notion
-        notion_url = await loop.run_in_executor(None, publish_script, script)
-
-        # Save script and state
-        state = load_state()
         state["current_episode"] = script.get("episode_id", "?")
         state["current_script"] = script
-        state["script_notion_url"] = notion_url
-        state["script_version"] = 1
-        state["stage"] = "script_review"
         save_state(state)
 
-        # Post to #script-review
+        episode_title = script.get("title", "Untitled")
         episode_id = script.get("episode_id", "?")
-        title = script.get("title", "Untitled")
-        scenes = len(script.get("scenes", []))
-        total_dur = sum(s.get("duration_seconds", 0) for s in script.get("scenes", []))
 
-        review_msg = (
-            f"**Script Ready — {episode_id}: {title}**\n\n"
-            f"[Notion Link]({notion_url})\n\n"
-            f"Scenes: {scenes} | Duration: {total_dur}s\n\n"
-            f"Reply **approve** to proceed to video production.\n"
-            f"Reply with edit notes to request changes."
+        if status_channel:
+            scenes = len(script.get("scenes", []))
+            total_dur = sum(s.get("duration_seconds", 0) for s in script.get("scenes", []))
+            msg = f"**Script written** — {episode_id}: {episode_title} ({scenes} scenes, {total_dur}s)"
+            if errors:
+                msg += f"\nWarnings: {', '.join(errors)}"
+            await status_channel.send(msg)
+
+        # ------------------------------------------------------------------
+        # Step 2: Asset check
+        # ------------------------------------------------------------------
+        assets_ok, missing = check_asset_availability(script)
+        if not assets_ok:
+            missing_list = "\n".join(f"- `{m}`" for m in missing)
+            if status_channel:
+                await status_channel.send(
+                    f"**Asset check failed.** Missing:\n{missing_list}"
+                )
+            from src.bot.alerts import notify_error
+            await notify_error(bot, "Asset Check", episode_id, f"Missing: {', '.join(missing)}")
+            state["stage"] = "idle"
+            save_state(state)
+            return
+
+        # ------------------------------------------------------------------
+        # Step 3: Render video (dual format — horizontal + vertical)
+        # ------------------------------------------------------------------
+        if status_channel:
+            await status_channel.send(f"Rendering video for {episode_id} (horizontal + vertical)...")
+
+        clear_all_rendering_warnings()
+
+        # Mood-based music selection with v1 fallback
+        mood = script.get("metadata", {}).get("mood", "playful")
+        music_path = os.path.join(ASSETS_DIR, "music", f"{mood}.wav")
+        if not os.path.exists(music_path):
+            v1_fallback = {
+                "playful": "main_theme.wav",
+                "calm": "main_theme.wav",
+                "tense": "tense_theme.wav",
+            }
+            music_path = os.path.join(ASSETS_DIR, "music", v1_fallback.get(mood, "main_theme.wav"))
+
+        output_name = episode_id.lower().replace("-", "_")
+
+        # Render horizontal (1920x1080) for YouTube
+        video_path_h = await loop.run_in_executor(
+            None, compose_episode, script, music_path, output_name, HORIZONTAL
         )
 
-        if errors:
-            review_msg += f"\n\nWarnings: {', '.join(errors)}"
+        # Render vertical (1080x1920) for Shorts/TikTok/Reels
+        clear_all_rendering_warnings()
+        video_path_v = await loop.run_in_executor(
+            None, compose_episode, script, music_path, output_name, VERTICAL
+        )
 
-        await script_channel.send(review_msg)
+        # Check for rendering warnings (missing sprites, backgrounds, etc.)
+        warnings = collect_rendering_warnings()
+        if warnings:
+            from src.bot.alerts import notify_error
+            await notify_error(bot, "Rendering Warnings", episode_id, "\n".join(warnings))
+
+        # ------------------------------------------------------------------
+        # Step 4: Quality check both formats (warn, don't block)
+        # ------------------------------------------------------------------
+        for label, vpath in [("horizontal", video_path_h), ("vertical", video_path_v)]:
+            passed, issues = check_video_quality(vpath)
+            if not passed:
+                issue_text = "\n".join(f"- {i}" for i in issues)
+                if status_channel:
+                    await status_channel.send(f"**Quality warnings ({label}):**\n{issue_text}")
+
+        if status_channel:
+            await status_channel.send(
+                f"**Video rendered** — {episode_id}: {episode_title} (horizontal + vertical)"
+            )
+
+        # ------------------------------------------------------------------
+        # Step 5: Generate metadata + safety check
+        # ------------------------------------------------------------------
+        metadata = await loop.run_in_executor(None, generate_metadata, script)
+        is_safe, safety_issues = safety_check(metadata)
+        if not is_safe:
+            issue_text = "\n".join(f"- {i}" for i in safety_issues)
+            if status_channel:
+                await status_channel.send(f"**Safety warnings:**\n{issue_text}")
+
+        # ------------------------------------------------------------------
+        # Step 6: Upload both videos to Google Drive
+        # ------------------------------------------------------------------
+        # Peek at next episode number for Drive filename
+        episode_num = 1
+        try:
+            index_path = os.path.join(DATA_DIR, "episodes", "index.json")
+            if os.path.exists(index_path):
+                with open(index_path, "r") as f:
+                    index = json.load(f)
+                episode_num = index.get("next_episode_number", 1)
+        except Exception:
+            pass
+
+        drive_filename_h = format_drive_filename(episode_num, episode_title)
+        # Vertical filename: same but with _vertical suffix before .mp4
+        drive_filename_v = drive_filename_h.replace(".mp4", "_vertical.mp4")
+
+        drive_result_h = await loop.run_in_executor(
+            None, upload_to_drive, video_path_h, drive_filename_h
+        )
+        drive_result_v = await loop.run_in_executor(
+            None, upload_to_drive, video_path_v, drive_filename_v
+        )
+
+        # Assign episode number on first successful upload
+        any_upload_ok = drive_result_h["success"] or drive_result_v["success"]
+        if any_upload_ok:
+            real_episode_id = assign_episode_number()
+            state["current_episode"] = real_episode_id
+            script["episode_id"] = real_episode_id
+            if "metadata" in script:
+                script["metadata"]["episode_id"] = real_episode_id
+            state["current_script"] = script
+            save_state(state)
+
+        if drive_result_h["success"]:
+            if status_channel:
+                await status_channel.send(
+                    f"**Uploaded to Google Drive (horizontal)** — {drive_filename_h}\n"
+                    f"Link: {drive_result_h['file_url']}"
+                )
+        else:
+            if status_channel:
+                await status_channel.send(
+                    f"**Drive upload failed (horizontal):** {drive_result_h['error']}"
+                )
+            from src.bot.alerts import notify_error
+            await notify_error(bot, "Drive Upload (horizontal)", episode_id, drive_result_h["error"])
+
+        if drive_result_v["success"]:
+            if status_channel:
+                await status_channel.send(
+                    f"**Uploaded to Google Drive (vertical)** — {drive_filename_v}\n"
+                    f"Link: {drive_result_v['file_url']}"
+                )
+        else:
+            if status_channel:
+                await status_channel.send(
+                    f"**Drive upload failed (vertical):** {drive_result_v['error']}"
+                )
+            from src.bot.alerts import notify_error
+            await notify_error(bot, "Drive Upload (vertical)", episode_id, drive_result_v["error"])
+
+        # ------------------------------------------------------------------
+        # Step 7: Publish to YouTube — horizontal as regular, vertical as Short
+        # (skip both if safety check failed)
+        # ------------------------------------------------------------------
+        if is_safe:
+            yt_metadata = metadata.get("youtube", {})
+
+            # Horizontal → regular YouTube video (is_short=False strips #Shorts)
+            yt_result_h = await publish_to_youtube(video_path_h, yt_metadata, is_short=False)
+
+            if yt_result_h.get("success"):
+                if status_channel:
+                    await status_channel.send(
+                        f"**Published to YouTube (horizontal)** — {yt_result_h.get('post_url', '')}"
+                    )
+            else:
+                if status_channel:
+                    await status_channel.send(
+                        f"**YouTube publish failed (horizontal):** {yt_result_h.get('error', 'Unknown')}"
+                    )
+                from src.bot.alerts import notify_error
+                await notify_error(
+                    bot, "YouTube Publish (horizontal)",
+                    state.get("current_episode", episode_id),
+                    yt_result_h.get("error", "Unknown"),
+                )
+
+            # Vertical → YouTube Short (is_short=True keeps #Shorts)
+            yt_result_v = await publish_to_youtube(video_path_v, yt_metadata, is_short=True)
+
+            if yt_result_v.get("success"):
+                if status_channel:
+                    await status_channel.send(
+                        f"**Published to YouTube Shorts (vertical)** — {yt_result_v.get('post_url', '')}"
+                    )
+            else:
+                if status_channel:
+                    await status_channel.send(
+                        f"**YouTube Shorts publish failed (vertical):** {yt_result_v.get('error', 'Unknown')}"
+                    )
+                from src.bot.alerts import notify_error
+                await notify_error(
+                    bot, "YouTube Shorts (vertical)",
+                    state.get("current_episode", episode_id),
+                    yt_result_v.get("error", "Unknown"),
+                )
+        else:
+            if status_channel:
+                await status_channel.send(
+                    "**YouTube publish skipped** — safety check failed. "
+                    "Fix metadata and publish manually."
+                )
+
+        # ------------------------------------------------------------------
+        # Step 8: Log continuity + episode index (non-blocking)
+        # ------------------------------------------------------------------
+        try:
+            await loop.run_in_executor(None, log_episode, script)
+        except Exception as e:
+            print(f"[Pipeline] Continuity logging failed (non-blocking): {e}")
+
+        try:
+            await loop.run_in_executor(None, log_episode_to_index, script)
+        except Exception as e:
+            print(f"[Pipeline] Episode index logging failed (non-blocking): {e}")
+
+        # ------------------------------------------------------------------
+        # Step 9: Done
+        # ------------------------------------------------------------------
+        state["stage"] = "done"
+        save_state(state)
+
+        real_id = state.get("current_episode", episode_id)
+        if status_channel:
+            await status_channel.send(
+                f"**Pipeline complete** — {real_id}: {episode_title}"
+            )
 
     except Exception as e:
-        print(f"[Idea Selection] Error generating script: {e}")
-        if idea_channel:
-            await idea_channel.send(f"Error generating script: {e}")
+        print(f"[Pipeline] Fatal error: {e}")
+        import traceback
+        traceback.print_exc()
         from src.bot.alerts import notify_error
-        from src.bot.state import load_state as _load
-        ep = _load().get("current_episode")
-        await notify_error(bot, "Script Generation", ep, str(e))
-        state = load_state()
+        ep = state.get("current_episode", "?")
+        await notify_error(bot, "Pipeline", ep, str(e))
+        if status_channel:
+            await status_channel.send(f"**Pipeline failed:** {e}")
         state["stage"] = "idle"
         save_state(state)

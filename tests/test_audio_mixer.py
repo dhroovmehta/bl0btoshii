@@ -30,16 +30,16 @@ MOCK_CHAR_BLIPS = {
 # ---------------------------------------------------------------------------
 
 class TestVolumeConstants:
-    """Test default volume level constants."""
+    """Test default volume level constants (v2: quieter for atmospheric audio)."""
 
     def test_music_volume(self):
-        assert MUSIC_VOLUME_DB == -12.0
+        assert MUSIC_VOLUME_DB == -20.0
 
     def test_sfx_volume(self):
-        assert SFX_VOLUME_DB == -3.0
+        assert SFX_VOLUME_DB == -8.0
 
     def test_blip_volume(self):
-        assert BLIP_VOLUME_DB == -6.0
+        assert BLIP_VOLUME_DB == -14.0
 
 
 # ---------------------------------------------------------------------------

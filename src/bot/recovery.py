@@ -2,17 +2,14 @@
 
 from src.bot.state import load_state, save_state
 
-# States that are "in-flight" (bot was actively processing) vs "waiting on human"
-# In-flight states get reset on startup because the background task is dead.
-# Human-waiting states are left alone — the user can still reply.
+# v2: pipeline_running is the only in-flight state.
+# If the bot crashes mid-pipeline, reset to idle — user can !generate again.
 RECOVERY_MAP = {
-    "script_generating": "idle",       # Script gen task died → restart from scratch
-    "video_generating": "script_review",  # Video gen task died → re-approve script
-    "publishing": "video_review",      # Publish task died → re-approve video
+    "pipeline_running": "idle",
 }
 
-# States that require no recovery (idle, waiting on human, or done)
-SAFE_STATES = {"idle", "ideas_posted", "script_review", "video_review", "done"}
+# States that require no recovery (idle, waiting on human pick, or done)
+SAFE_STATES = {"idle", "ideas_posted", "done"}
 
 
 async def recover_stuck_state(bot):

@@ -79,11 +79,14 @@ class TestGetCharacterPosition:
     """Test character position lookup."""
 
     def test_known_position(self):
+        """Positions from locations.json are in v1 coords (1080x1920).
+        get_character_position returns raw v1 values — scaling happens in scene_builder."""
         x, y = get_character_position("diner_interior", "stool_1")
         assert isinstance(x, int)
         assert isinstance(y, int)
-        assert 0 <= x <= FRAME_WIDTH
-        assert 0 <= y <= FRAME_HEIGHT
+        # Raw v1 positions: x in 0-1080, y in 0-1920
+        assert 0 <= x <= 1080
+        assert 0 <= y <= 1920
 
     def test_unknown_position_returns_default(self):
         x, y = get_character_position("diner_interior", "nonexistent_spot")
@@ -131,8 +134,9 @@ class TestLoadBackground:
         assert bg.mode == "RGB"
 
     def test_frame_constants(self):
-        assert FRAME_WIDTH == 1080
-        assert FRAME_HEIGHT == 1920
+        # v2: 16:9 horizontal format
+        assert FRAME_WIDTH == 1920
+        assert FRAME_HEIGHT == 1080
         assert FRAME_RATE == 30
 
 

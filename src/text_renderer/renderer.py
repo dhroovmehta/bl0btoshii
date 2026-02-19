@@ -1,4 +1,7 @@
-"""NES-style text box renderer — generates frame-by-frame typewriter animation."""
+"""Text box renderer — generates frame-by-frame typewriter animation.
+
+v2: Returns PIL Images in memory (no disk writes). Wider text box for 16:9 format.
+"""
 
 import json
 import os
@@ -8,9 +11,9 @@ ASSETS_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "assets")
 DATA_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "data")
 FONT_PATH = os.path.join(ASSETS_DIR, "ui", "fonts", "PressStart2P-Regular.ttf")
 
-# Text box visual spec from PRD
-BOX_WIDTH = 900
-BOX_HEIGHT = 200
+# v2 text box — wider for 16:9 widescreen format
+BOX_WIDTH = 1200
+BOX_HEIGHT = 180
 BOX_BG_COLOR = (26, 26, 58, 216)  # #1A1A3A at ~85% opacity
 BOX_BORDER_COLOR = (255, 255, 255, 255)
 BOX_BORDER_WIDTH = 2
@@ -36,25 +39,36 @@ def _hex_to_rgb(hex_color):
 def render_dialogue_frames(
     character_id,
     text,
-    output_dir,
+    output_dir=None,
     frame_rate=30,
     chars_per_second=12,
     include_portrait=True,
+    render_config=None,
 ):
     """Render frame-by-frame typewriter animation for a dialogue line.
+
+    v2: Returns list of PIL Images (in-memory). output_dir is ignored but kept
+    in signature for backward compatibility.
 
     Args:
         character_id: Character ID (e.g., "pens")
         text: The dialogue text
-        output_dir: Directory to save frame images
+        output_dir: Deprecated — ignored in v2 (frames are in-memory)
         frame_rate: Video frame rate
         chars_per_second: Typewriter speed
         include_portrait: Whether to include character portrait
+        render_config: Optional RenderConfig for dual format. Defaults to HORIZONTAL.
 
     Returns:
-        List of frame image paths, plus the total number of frames.
+        List of PIL Image objects (RGBA).
     """
-    os.makedirs(output_dir, exist_ok=True)
+    # Resolve text box dimensions from render_config or module defaults
+    if render_config is not None:
+        box_width = render_config.text_box_width
+        box_height = render_config.text_box_height
+    else:
+        box_width = BOX_WIDTH
+        box_height = BOX_HEIGHT
 
     chars_data = _load_character_data()
     char = chars_data.get(character_id, {})
@@ -82,13 +96,13 @@ def render_dialogue_frames(
     text_x_start = TEXT_PADDING
     if portrait:
         text_x_start = PORTRAIT_SIZE + TEXT_PADDING * 2
-    text_area_width = BOX_WIDTH - text_x_start - TEXT_PADDING
+    text_area_width = box_width - text_x_start - TEXT_PADDING
 
     # Word wrap the text
     wrapped_lines = _word_wrap(text, font, text_area_width)
 
     # Calculate frames needed for typewriter effect
-    # Use float division to avoid integer rounding bug (30//20=1 → 30cps instead of 20)
+    # Use float division to avoid integer rounding bug (30//20=1 -> 30cps instead of 20)
     total_chars = sum(len(line) for line in wrapped_lines)
     frames_per_char = frame_rate / chars_per_second  # float: e.g. 30/12 = 2.5
     typewriter_frames = int(total_chars * frames_per_char)
@@ -96,7 +110,7 @@ def render_dialogue_frames(
     hold_frames = frame_rate * 2
     total_frames = typewriter_frames + hold_frames
 
-    frame_paths = []
+    frames = []
 
     for frame_num in range(total_frames):
         # How many characters to show this frame
@@ -105,13 +119,13 @@ def render_dialogue_frames(
         else:
             chars_shown = total_chars
 
-        # Create the text box frame
-        box = Image.new("RGBA", (BOX_WIDTH, BOX_HEIGHT), BOX_BG_COLOR)
+        # Create the text box frame at the config's dimensions
+        box = Image.new("RGBA", (box_width, box_height), BOX_BG_COLOR)
         draw = ImageDraw.Draw(box)
 
         # Draw border
         draw.rectangle(
-            [0, 0, BOX_WIDTH - 1, BOX_HEIGHT - 1],
+            [0, 0, box_width - 1, box_height - 1],
             outline=BOX_BORDER_COLOR, width=BOX_BORDER_WIDTH
         )
 
@@ -136,12 +150,9 @@ def render_dialogue_frames(
             chars_remaining -= len(line)
             y += FONT_SIZE + 6
 
-        # Save frame
-        frame_path = os.path.join(output_dir, f"frame_{frame_num:05d}.png")
-        box.save(frame_path)
-        frame_paths.append(frame_path)
+        frames.append(box)
 
-    return frame_paths
+    return frames
 
 
 def _word_wrap(text, font, max_width):
