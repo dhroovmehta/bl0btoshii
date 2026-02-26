@@ -11,6 +11,7 @@ from src.bot.scheduler import (
     WEEKLY_REPORT_TIME,
     PIPELINE_TZ,
     is_weekly_report_day,
+    is_pipeline_paused,
 )
 
 
@@ -111,3 +112,44 @@ class TestIsWeeklyReportDay:
         # This tests that the function uses the provided datetime's weekday
         monday_et = datetime.datetime(2026, 2, 16, 0, 30, tzinfo=zoneinfo.ZoneInfo("America/New_York"))
         assert is_weekly_report_day(monday_et) is True
+
+
+# ---------------------------------------------------------------------------
+# Pipeline pause flag
+# ---------------------------------------------------------------------------
+
+
+class TestIsPipelinePaused:
+    """Tests for the PIPELINE_PAUSED env var check."""
+
+    def test_paused_when_env_true(self, monkeypatch):
+        monkeypatch.setenv("PIPELINE_PAUSED", "true")
+        assert is_pipeline_paused() is True
+
+    def test_paused_when_env_1(self, monkeypatch):
+        monkeypatch.setenv("PIPELINE_PAUSED", "1")
+        assert is_pipeline_paused() is True
+
+    def test_paused_when_env_yes(self, monkeypatch):
+        monkeypatch.setenv("PIPELINE_PAUSED", "yes")
+        assert is_pipeline_paused() is True
+
+    def test_paused_case_insensitive(self, monkeypatch):
+        monkeypatch.setenv("PIPELINE_PAUSED", "TRUE")
+        assert is_pipeline_paused() is True
+
+    def test_not_paused_when_env_false(self, monkeypatch):
+        monkeypatch.setenv("PIPELINE_PAUSED", "false")
+        assert is_pipeline_paused() is False
+
+    def test_not_paused_when_env_0(self, monkeypatch):
+        monkeypatch.setenv("PIPELINE_PAUSED", "0")
+        assert is_pipeline_paused() is False
+
+    def test_not_paused_when_env_missing(self, monkeypatch):
+        monkeypatch.delenv("PIPELINE_PAUSED", raising=False)
+        assert is_pipeline_paused() is False
+
+    def test_not_paused_when_env_empty(self, monkeypatch):
+        monkeypatch.setenv("PIPELINE_PAUSED", "")
+        assert is_pipeline_paused() is False

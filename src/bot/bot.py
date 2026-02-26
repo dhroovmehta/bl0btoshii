@@ -51,8 +51,11 @@ async def on_ready():
     from src.bot.alerts import notify_startup
     await notify_startup(bot)
 
-    # Start scheduled tasks
-    if not daily_pipeline_trigger.is_running():
+    # Start scheduled tasks (unless pipeline is paused via env var)
+    from src.bot.scheduler import is_pipeline_paused
+    if is_pipeline_paused():
+        print("[Mootoshi Bot] PIPELINE_PAUSED=true — daily pipeline will NOT run.")
+    elif not daily_pipeline_trigger.is_running():
         daily_pipeline_trigger.start()
         print("[Mootoshi Bot] Daily pipeline scheduler started.")
     if not weekly_analytics_trigger.is_running():

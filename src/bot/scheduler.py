@@ -19,6 +19,15 @@ WEEKLY_REPORT_DAY = 0  # Monday (Python weekday: Mon=0, Sun=6)
 WEEKLY_REPORT_TIME = datetime.time(hour=9, minute=0, tzinfo=PIPELINE_TZ)
 
 
+def is_pipeline_paused():
+    """Check if the pipeline is paused via PIPELINE_PAUSED env var.
+
+    Returns:
+        True if PIPELINE_PAUSED is set to a truthy value (true/1/yes).
+    """
+    return os.getenv("PIPELINE_PAUSED", "").strip().lower() in ("true", "1", "yes")
+
+
 def is_weekly_report_day(now=None):
     """Check if the current day is the weekly report day (Monday).
 
