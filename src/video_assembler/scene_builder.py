@@ -76,7 +76,7 @@ def load_background_layers(location_id, target_width=None, target_height=None):
     Last resort: solid color + warning.
 
     Args:
-        location_id: e.g., "diner_interior"
+        location_id: e.g., "diner"
         target_width: Target width to scale layers to. Defaults to FRAME_WIDTH.
         target_height: Target height to scale layers to. Defaults to FRAME_HEIGHT.
 
@@ -96,17 +96,27 @@ def load_background_layers(location_id, target_width=None, target_height=None):
             if os.path.exists(layer_path):
                 layer = Image.open(layer_path).convert("RGBA")
                 if layer.size != (tw, th):
-                    layer = layer.resize((tw, th), Image.NEAREST)
+                    # LANCZOS for backgrounds — smooth illustrations, not pixel art
+                    layer = layer.resize((tw, th), Image.LANCZOS)
                 layers.append(layer)
         if layers:
             return layers
 
-    # Fall back to single file (v1 backgrounds)
+    # For vertical targets, try orientation-specific file first
+    if th > tw:
+        vertical_path = os.path.join(ASSETS_DIR, "backgrounds", f"{location_id}_vertical.png")
+        if os.path.exists(vertical_path):
+            bg = Image.open(vertical_path).convert("RGBA")
+            if bg.size != (tw, th):
+                bg = bg.resize((tw, th), Image.LANCZOS)
+            return [bg]
+
+    # Fall back to single file (horizontal or v1 backgrounds)
     single_path = os.path.join(ASSETS_DIR, "backgrounds", f"{location_id}.png")
     if os.path.exists(single_path):
         bg = Image.open(single_path).convert("RGBA")
         if bg.size != (tw, th):
-            bg = bg.resize((tw, th), Image.NEAREST)
+            bg = bg.resize((tw, th), Image.LANCZOS)
         return [bg]
 
     # Nothing found — warn and return solid color
@@ -123,7 +133,7 @@ def load_background(location_id):
     Internally uses load_background_layers for parallax support.
 
     Args:
-        location_id: e.g., "diner_interior"
+        location_id: e.g., "diner"
 
     Returns:
         PIL Image (RGB) at FRAME_WIDTH x FRAME_HEIGHT.
@@ -195,7 +205,7 @@ def build_scene_frames(scene, frame_offset=0, render_config=None):
         fh = FRAME_HEIGHT
         text_box_y = TEXT_BOX_Y
 
-    background_id = scene.get("background", "diner_interior")
+    background_id = scene.get("background", "diner")
     duration_seconds = scene.get("duration_seconds", 8)
     characters_present = scene.get("characters_present", [])
     char_positions = scene.get("character_positions", {})
@@ -257,13 +267,20 @@ def build_scene_frames(scene, frame_offset=0, render_config=None):
             sfx.get("sfx", "")
         ))
 
-    # Resolve all character positions and scale to target frame size
+    # Resolve all character positions using ground-anchored system
     resolved_positions = resolve_scene_positions(
-        background_id, characters_present, char_positions
+        background_id, characters_present, char_positions,
+        frame_width=fw, frame_height=fh,
     )
-    for char_id in resolved_positions:
-        x, y = resolved_positions[char_id]
-        resolved_positions[char_id] = scale_position_v1(x, y, target_width=fw, target_height=fh)
+
+    # Pre-compute sprite heights for speech bubble positioning
+    char_sprite_heights = {}
+    for char_id in characters_present:
+        sprite = load_sprite(char_id, "idle")
+        char_sprite_heights[char_id] = sprite.height
+
+    # Gap between character head and bottom of speech bubble
+    BUBBLE_GAP = 8
 
     def _frame_generator():
         """Yield one PIL Image per frame."""
@@ -290,20 +307,35 @@ def build_scene_frames(scene, frame_offset=0, render_config=None):
                 state = "talking" if is_speaking else animation
                 frame = composite_character(frame, char_id, state, background_id, position)
 
-            # Composite text box if dialogue is active
+            # Composite speech bubble above speaking character
             for dt in dialogue_timeline:
                 if dt["start_frame"] <= frame_num < dt["end_frame"]:
                     text_frame_idx = frame_num - dt["start_frame"]
                     if text_frame_idx < len(dt["frames"]):
-                        text_box = dt["frames"][text_frame_idx]
-                        if not isinstance(text_box, Image.Image):
-                            text_box = Image.open(text_box).convert("RGBA")
+                        bubble = dt["frames"][text_frame_idx]
+                        if not isinstance(bubble, Image.Image):
+                            bubble = Image.open(bubble).convert("RGBA")
                         else:
-                            text_box = text_box.convert("RGBA")
-                        # Center text box horizontally at bottom
-                        tx = (fw - text_box.width) // 2
-                        ty = text_box_y
-                        frame.paste(text_box, (tx, ty), text_box)
+                            bubble = bubble.convert("RGBA")
+
+                        # Position bubble above the speaking character's head
+                        char_id = dt["character"]
+                        char_pos = resolved_positions.get(char_id)
+                        if char_pos:
+                            cx, cy = char_pos[0], char_pos[1]
+                            sprite_h = char_sprite_heights.get(char_id, 288)
+                            char_top = cy - sprite_h
+                            bx = cx - bubble.width // 2
+                            by = char_top - bubble.height - BUBBLE_GAP
+                            # Clamp to frame bounds
+                            bx = max(0, min(bx, fw - bubble.width))
+                            by = max(0, by)
+                        else:
+                            # Fallback: center of screen near top
+                            bx = (fw - bubble.width) // 2
+                            by = 50
+
+                        frame.paste(bubble, (bx, by), bubble)
                     break  # Only show one dialogue at a time
 
             # Yield as RGB (no alpha in final video)

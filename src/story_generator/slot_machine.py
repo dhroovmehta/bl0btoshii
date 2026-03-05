@@ -161,7 +161,7 @@ def _generate_full_cast_idea(char_ids, characters_data, situations_data,
                               locations_data, punchlines_data, weights):
     """Generate a full-cast episode idea (all 6 characters)."""
     # Full cast works best in diner or town square
-    location = random.choice(["diner_interior", "town_square"])
+    location = random.choice(["diner", "town_square"])
     situation = random.choice(["everyday_life", "scheme_adventure"])
     punchline = random.choice(["escalation", "entrance", "backfire"])
 

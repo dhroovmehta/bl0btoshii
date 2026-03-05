@@ -1,6 +1,6 @@
 """Copy cleaned sprites from blobtoshi_sprites/ to the project assets/ directory.
 
-Handles the naming difference: blobtoshi_sprites/backgrounds/diner.png → assets/backgrounds/diner_interior.png
+Note: Background processing is now handled by scripts/process_background.py.
 
 Usage:
     python scripts/copy_to_assets.py
@@ -17,11 +17,9 @@ CHARACTER_FOLDERS = ["pens", "chubs", "meows", "oinks", "quacks", "reows"]
 
 # Background name mapping (source → destination)
 BG_NAME_MAP = {
-    "diner.png": "diner_interior.png",
-    "beach.png": "beach.png",
-    "forest.png": "forest.png",
+    "diner.png": "diner.png",
+    "farmers_market.png": "farmers_market.png",
     "town_square.png": "town_square.png",
-    "chubs_office.png": "chubs_office.png",
     "reows_place.png": "reows_place.png",
 }
 

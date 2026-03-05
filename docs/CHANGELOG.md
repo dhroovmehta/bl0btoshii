@@ -4,6 +4,186 @@ All notable changes to the Mootoshi pipeline.
 
 ---
 
+## 2026-02-22 — LANCZOS Resampling & External Watermark Removal
+
+**Problem:** Two visual artifacts in rendered output: (1) Visible vertical seams/stripes in all background images — caused by `Image.NEAREST` resampling at non-integer scale factors (e.g., 2752→1920 = 0.698x). Nearest-neighbor creates uneven column widths that appear as vertical bands in smooth illustrations. (2) A rectangular texture mismatch in the bottom-right corner of backgrounds — the `clean_background()` watermark removal function copied pixels from above the watermark area, which at material boundaries (grass/dirt, wood plank edges) created a visible patch.
+
+**What changed:**
+
+1. **LANCZOS resampling for backgrounds** — Switched all background resize calls from `Image.NEAREST` to `Image.LANCZOS` across 4 files. Character sprites remain NEAREST (correct for pixel art).
+
+2. **External watermark removal** — Watermarks are now removed externally before source images enter the pipeline. `process_single_background()` no longer calls `clean_background()`. Processing is now: crop dark edges → LANCZOS resize. This eliminates the texture mismatch artifact entirely.
+
+3. **Debug overlay removal** — Removed crosshair markers, coordinate labels, and title bar from `generate_positioning_test.py` output — clean composites only.
+
+4. **Test updates** — Added 3 new LANCZOS verification tests (mock-based, tracking resampling method). Replaced obsolete `test_watermark_corner_is_patched` with `test_source_content_preserved_no_watermark_patching`.
+
+**New architectural decisions:** D-028 (LANCZOS for backgrounds), D-029 (external watermark removal)
+
+**Files modified:**
+- `src/video_assembler/scene_builder.py` — 3 NEAREST→LANCZOS changes in `load_background_layers()`
+- `scripts/process_background.py` — NEAREST→LANCZOS, removed watermark step
+- `scripts/resize_for_pipeline.py` — NEAREST→LANCZOS for backgrounds
+- `src/storyboard/renderer.py` — NEAREST→LANCZOS for thumbnails
+- `scripts/generate_positioning_test.py` — removed debug overlay code
+- `tests/test_process_background.py` — 3 new LANCZOS tests, 1 updated watermark test
+
+**Test count:** 784 passing (unchanged count — replaced 1 obsolete test)
+
+---
+
+## 2026-02-22 — Per-Character Default Facing & Foreground Grounding
+
+**Problem:** After the initial positioning fix, three issues remained: (1) Characters faced the *same* direction instead of facing each other — the mirror logic assumed all sprites face right by default, but pixel mass analysis revealed 4/6 characters (Chubs, Meows, Oinks, Quacks) face LEFT in their source sprites. When Oinks (default left) was mirrored for `facing="left"`, it flipped to face RIGHT — same as Pens. (2) Characters were positioned too high — ground_y values placed feet in the mid-ground (e.g., town_square horizontal at 0.78 = y=842, which is mid-grass). (3) Tests were not comprehensive enough — no coverage for per-character facing, no full position matrix across all 6 characters x 4 locations x 2 orientations.
+
+**What changed:**
+
+1. **Per-character `default_facing`** — Added `default_facing` field to all 6 characters in `characters.json`: Pens and Reows face RIGHT, Chubs/Meows/Oinks/Quacks face LEFT. Mirror logic changed from `if facing == "left"` to `if facing != default_facing`. A left-facing sprite placed at a left-facing position is NOT mirrored; it IS mirrored when placed at a right-facing position.
+
+2. **Foreground ground_y values** — All ground_y values raised to place characters firmly in the foreground:
+   - Diner: H 0.90→0.92, V 0.84→0.90
+   - Farmers Market: H 0.84→0.90, V 0.77→0.88
+   - Town Square: H 0.78→0.88, V 0.78→0.88
+   - Reows Place: H 0.82→0.90, V 0.82→0.90
+
+3. **Comprehensive test suite** — 42 new tests added:
+   - `TestDefaultFacing` (8 tests): every character has `default_facing`, correct values per character
+   - `TestForegroundPositioning` (8 parametrized tests): horizontal >= 85%, vertical >= 82%
+   - `TestFullPositionMatrix` (~24 tests): all 6 chars x all 4 locations x both orientations — no crashes, primary pair faces each other
+   - Pixel mass orientation test: verifies Oinks facing left preserves original sprite orientation
+   - Mirror difference test: all 6 characters produce > 1000 pixel diff when mirrored
+
+**New architectural decision:** D-027 (per-character default facing)
+
+**Files modified:**
+- `data/characters.json` — added `default_facing` to all 6 characters
+- `data/locations.json` — all ground_y values raised for foreground grounding
+- `src/video_assembler/sprite_manager.py` — `get_default_facing()` function, mirror logic uses default_facing comparison
+- `src/storyboard/renderer.py` — mirror logic uses default_facing comparison
+- `scripts/generate_positioning_test.py` — mirror logic uses default_facing comparison
+- `tests/test_ground_anchored_positioning.py` — 40 new tests (facing, foreground, full matrix)
+- `tests/test_video_assembler.py` — 4 new facing verification tests
+- `tests/test_character_positioning.py` — dynamic ground_y assertions
+
+**Test count:** 776 passing (was 734 — +42 new comprehensive tests)
+
+---
+
+## 2026-02-22 — Conversational Positioning & Sprite Facing
+
+**Problem:** Characters were positioned at extreme edges of the frame (x_pct 0.14 and 0.83), making them look disconnected rather than engaged in conversation. Additionally, the `facing` field existed in `locations.json` but was completely ignored by the rendering code — all characters faced right regardless. In vertical mode (1080px wide), the diner's stool positions were so close they overlapped (219px gap for 240px-wide sprites).
+
+**What changed:**
+
+1. **Conversational positioning** — All primary conversation positions moved to x_pct 0.35 and 0.65 (30% gap). This produces:
+   - Horizontal (1920px): 576px between centers = 2.4 character widths
+   - Vertical (1080px): 324px between centers = 1.35 character widths
+   Both look natural for two characters in casual conversation.
+
+2. **Position reordering** — First two positions per location are now the primary conversation pair (stool_1/stool_2, bench_left/bench_right, etc.). `resolve_scene_positions()` assigns characters in order, so the first two always get the facing pair.
+
+3. **Sprite facing** — `resolve_ground_position()` now returns `(x, y, facing)` 3-tuples. `composite_character()` applies `ImageOps.mirror()` when facing=="left". Left position faces right, right position faces left — characters look at each other.
+
+4. **Storyboard facing** — `src/storyboard/renderer.py` updated to handle 3-tuples and flip thumbnails for facing direction.
+
+5. **Sprite constants updated** — Test constants updated to match Bootoshi sprite sizes: MAX_SPRITE_WIDTH 192→260, MAX_SPRITE_HEIGHT 288→420. Obsolete tests removed (fixed-position text box clearance checks).
+
+**New architectural decision:** D-026 (conversational positioning and sprite facing)
+
+**Files modified:**
+- `data/locations.json` — all position x_pct values and facing directions
+- `src/video_assembler/sprite_manager.py` — 3-tuple returns, ImageOps.mirror flip
+- `src/video_assembler/scene_builder.py` — 3-tuple unpacking for bubble positioning
+- `src/storyboard/renderer.py` — 3-tuple unpacking + facing flip for thumbnails
+- `tests/test_ground_anchored_positioning.py` — 7 new facing tests + updated assertions
+- `tests/test_character_positioning.py` — updated constants, removed obsolete tests
+- `tests/test_video_assembler.py` — 2 new flip tests
+- `tests/test_v2_rendering.py` — adjusted bottom-strip threshold for sprite state diffs
+- `scripts/generate_positioning_test.py` — new visual verification script
+
+**Test count:** 734 passing (was 634 — +100 from previous session's work, net +7 new facing/flip tests, -3 removed obsolete tests)
+
+---
+
+## 2026-02-21 — Speech Bubble Dialogue System
+
+**Problem:** Dialogue rendered as a fixed-width text box at the bottom of the screen with character portrait and name label. This looked dated and didn't match the Bootoshi.ai visual style where dialogue appears as floating speech bubbles above the speaking character.
+
+**What changed:**
+
+1. **Speech bubble renderer** — `src/text_renderer/renderer.py` completely rewritten. Dark auto-sized bubbles (near-black at 94% opacity) with white Press Start 2P text, rounded corners, and a triangular tail pointing down toward the speaker. Bubble width auto-sizes to fit text content, capped at max width per format (500px horizontal, 450px vertical).
+
+2. **Character-relative positioning** — `src/video_assembler/scene_builder.py` now positions bubbles above the speaking character's head (centered on X, sprite_top - bubble_height - 8px gap) instead of at a fixed Y coordinate. Pre-computes sprite heights before the frame generator for efficiency.
+
+3. **Removed from bubbles:** character name label, character portrait, fixed-width box layout.
+
+4. **Audio blips disabled** — `generate_blip_events()` returns `[]`. Speech bubbles don't use audio blips.
+
+5. **RenderConfig updated** — `text_box_width` repurposed as max speech bubble width (HORIZONTAL: 500px, VERTICAL: 450px). `text_box_height` and `text_box_y` kept for backward compatibility but unused.
+
+**New architectural decision:** D-025 (speech bubble dialogue system)
+
+**Files modified:**
+- `src/text_renderer/renderer.py` — complete rewrite (speech bubbles)
+- `src/video_assembler/scene_builder.py` — character-relative bubble positioning
+- `src/video_assembler/render_config.py` — text_box_width now controls max bubble width
+- `src/audio_mixer/mixer.py` — blip events disabled
+- `tests/test_text_renderer.py` — rewritten for bubble constants and behavior
+- `tests/test_v2_rendering.py` — added bubble positioning tests
+- `tests/test_audio_mixer.py` — updated blip tests for disabled state
+- `tests/test_dual_format.py` — updated for new RenderConfig values
+
+**Test count:** 661 passing (was 657 — +4 new bubble tests)
+
+---
+
+## 2026-02-21 — Background Migration & Location Simplification
+
+**Problem:** v1 had 6 locations (diner_interior, beach, forest, town_square, chubs_office, reows_place) with single vertical-only backgrounds (1080x1920). The Bootoshi visual redesign simplified this to 4 locations and required both horizontal (1920x1080) and vertical (1080x1920) backgrounds.
+
+**What changed:**
+
+1. **Locations simplified from 6 to 4:**
+   - `diner` (renamed from `diner_interior`) — kept, same character positions
+   - `farmers_market` — new location with stall_left, center_aisle, stall_right positions
+   - `town_square` — kept unchanged
+   - `reows_place` — kept unchanged
+   - Removed: `beach`, `forest`, `chubs_office`
+
+2. **Dual-orientation backgrounds** — each location now has horizontal + vertical:
+   - `{location}.png` (1920x1080) — used for YouTube horizontal render
+   - `{location}_vertical.png` (1080x1920) — used for Shorts/TikTok/Reels vertical render
+   - 8 new background files total, 6 old ones deleted
+
+3. **Vertical-aware background loading** — `scene_builder.load_background_layers()` now checks for `{id}_vertical.png` when target dimensions are vertical (height > width), falling back to `{id}.png`.
+
+4. **Background processing script** — `scripts/process_background.py` handles watermark removal (bottom-right logo) and resizing from source dimensions (2752x1536 / 1536x2752) to pipeline dimensions.
+
+5. **All references updated** — `locations.json`, `situations.json`, `content_weights.json`, `slot_machine.py`, `scene_builder.py`, `storyboard/renderer.py`, `resize_for_pipeline.py`, `copy_to_assets.py`, and all test files.
+
+**New architectural decision:** D-024 (location simplification)
+
+**Files created:**
+- `scripts/process_background.py` — background processing (watermark removal + resize)
+- `tests/test_process_background.py` — 15 tests
+
+**Files modified:**
+- `data/locations.json` — 6 locations → 4 locations
+- `data/situations.json` — updated all best_locations arrays
+- `data/analytics/content_weights.json` — updated location_weights
+- `src/video_assembler/scene_builder.py` — vertical-aware loading + default fallback
+- `src/storyboard/renderer.py` — default fallback diner_interior → diner
+- `src/story_generator/slot_machine.py` — hardcoded location reference
+- `scripts/resize_for_pipeline.py` — updated BG dimensions + vertical awareness
+- `scripts/copy_to_assets.py` — updated BG_NAME_MAP
+- `scripts/test_pipeline_assets.py` — updated expected assets
+- `tests/conftest.py` — updated fixtures
+- ~13 test files — diner_interior → diner, removed location references
+
+**Tests:** 23 new tests added. Full suite: 657 passed, 0 failed.
+
+---
+
 ## 2026-02-18 — v2 Stage 6: YouTube Dual-Publish
 
 **Problem:** v1 only published one video to YouTube (always as a Short with `#Shorts` tag). After Stage 4 added dual format rendering (horizontal + vertical), we needed both videos published: horizontal as a regular YouTube video and vertical as a YouTube Short.

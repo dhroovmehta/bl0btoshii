@@ -165,7 +165,7 @@ class TestAssetCheckIntegration:
             "current_script": {
                 "scenes": [
                     {
-                        "background": "diner_interior",
+                        "background": "diner",
                         "characters_present": ["pens"],
                         "character_positions": {"pens": "stool_1"},
                         "character_animations": {"pens": "idle"},
@@ -211,7 +211,7 @@ class TestAssetCheckIntegration:
             "current_script": {
                 "scenes": [
                     {
-                        "background": "diner_interior",
+                        "background": "diner",
                         "characters_present": ["pens"],
                         "character_positions": {"pens": "stool_1"},
                         "character_animations": {"pens": "idle"},
@@ -264,7 +264,7 @@ class TestVideoQualityIntegration:
             "current_script": {
                 "scenes": [
                     {
-                        "background": "diner_interior",
+                        "background": "diner",
                         "characters_present": ["pens"],
                         "character_positions": {"pens": "stool_1"},
                         "character_animations": {"pens": "idle"},
@@ -340,7 +340,7 @@ class TestEpisodeLoggingIntegration:
                     "characters_featured": ["pens"],
                     "situation_type": "everyday_life",
                     "punchline_type": "deadpan",
-                    "location": "diner_interior",
+                    "location": "diner",
                     "created_at": "2026-02-15T00:00:00Z",
                 },
             },
@@ -412,7 +412,7 @@ class TestAutoPublishIntegration:
                     "characters_featured": ["pens"],
                     "situation_type": "everyday_life",
                     "punchline_type": "deadpan",
-                    "location": "diner_interior",
+                    "location": "diner",
                     "created_at": "2026-02-15T00:00:00Z",
                 },
             },
@@ -476,7 +476,7 @@ class TestAutoPublishIntegration:
                     "characters_featured": ["pens"],
                     "situation_type": "everyday_life",
                     "punchline_type": "deadpan",
-                    "location": "diner_interior",
+                    "location": "diner",
                     "created_at": "2026-02-15T00:00:00Z",
                 },
             },

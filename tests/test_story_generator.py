@@ -67,9 +67,10 @@ MOCK_CHARACTERS = {
 }
 MOCK_LOCATIONS = {
     "locations": {
-        "diner_interior": {"name": "Oinks' Diner"},
+        "diner": {"name": "Oinks' Diner"},
         "town_square": {"name": "Town Square"},
-        "beach": {"name": "Beach"},
+        "farmers_market": {"name": "Farmers Market"},
+        "reows_place": {"name": "Reows' Place"},
     }
 }
 
@@ -88,7 +89,7 @@ def _make_valid_script():
             {
                 "scene_number": 1,
                 "duration_seconds": 10,
-                "background": "diner_interior",
+                "background": "diner",
                 "characters_present": ["pens", "chubs"],
                 "action_description": "Pens walks in",
                 "dialogue": [
@@ -99,7 +100,7 @@ def _make_valid_script():
             {
                 "scene_number": 2,
                 "duration_seconds": 12,
-                "background": "diner_interior",
+                "background": "diner",
                 "characters_present": ["pens", "chubs"],
                 "action_description": "They sit down",
                 "dialogue": [

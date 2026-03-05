@@ -73,7 +73,7 @@ MOCK_TIMELINE = {
             "episode_id": "EP001",
             "event": "Pens burned the pancakes",
             "characters_involved": ["pens", "oinks"],
-            "location": "diner_interior",
+            "location": "diner",
             "tags": ["pancakes", "cooking", "disaster"],
             "callback_potential": "high",
         },
@@ -136,19 +136,19 @@ class TestFindCallbackOpportunities:
 
     @patch("src.continuity.engine._load_json", side_effect=_mock_load_json)
     def test_returns_list(self, mock_json):
-        result = find_callback_opportunities(["pens"], "cooking", "diner_interior")
+        result = find_callback_opportunities(["pens"], "cooking", "diner")
         assert isinstance(result, list)
 
     @patch("src.continuity.engine._load_json", side_effect=_mock_load_json)
     def test_character_overlap_scores(self, mock_json):
         """Episodes with matching characters should score higher."""
-        result = find_callback_opportunities(["pens"], "random_situation", "beach")
+        result = find_callback_opportunities(["pens"], "random_situation", "farmers_market")
         pens_callbacks = [cb for cb in result if cb["source_episode"] == "EP001"]
         assert len(pens_callbacks) > 0
 
     @patch("src.continuity.engine._load_json", side_effect=_mock_load_json)
     def test_location_match_boosts_score(self, mock_json):
-        result = find_callback_opportunities(["pens"], "cooking", "diner_interior")
+        result = find_callback_opportunities(["pens"], "cooking", "diner")
         ep001 = [cb for cb in result if cb["source_episode"] == "EP001" and "pancakes" in cb.get("reference", "")]
         assert len(ep001) > 0
         # Should have location boost
@@ -156,36 +156,36 @@ class TestFindCallbackOpportunities:
 
     @patch("src.continuity.engine._load_json", side_effect=_mock_load_json)
     def test_inactive_gags_excluded(self, mock_json):
-        result = find_callback_opportunities(["pens"], "cooking", "diner_interior")
+        result = find_callback_opportunities(["pens"], "cooking", "diner")
         refs = [cb["reference"] for cb in result]
         assert "something inactive" not in refs
 
     @patch("src.continuity.engine._load_json", side_effect=_mock_load_json)
     def test_active_gag_included(self, mock_json):
-        result = find_callback_opportunities(["pens"], "cooking", "diner_interior")
+        result = find_callback_opportunities(["pens"], "cooking", "diner")
         gag_refs = [cb for cb in result if "pancakes" in cb.get("reference", "").lower()]
         assert len(gag_refs) > 0
 
     @patch("src.continuity.engine._load_json", side_effect=_mock_load_json)
     def test_max_5_results(self, mock_json):
-        result = find_callback_opportunities(["pens", "oinks", "chubs"], "cooking", "diner_interior")
+        result = find_callback_opportunities(["pens", "oinks", "chubs"], "cooking", "diner")
         assert len(result) <= 5
 
     @patch("src.continuity.engine._load_json", side_effect=_mock_load_json)
     def test_sorted_by_relevance(self, mock_json):
-        result = find_callback_opportunities(["pens"], "cooking", "diner_interior")
+        result = find_callback_opportunities(["pens"], "cooking", "diner")
         if len(result) >= 2:
             assert result[0]["relevance_score"] >= result[1]["relevance_score"]
 
     @patch("src.continuity.engine._load_json", side_effect=_mock_load_json)
     def test_character_growth_included(self, mock_json):
-        result = find_callback_opportunities(["pens"], "cooking", "diner_interior")
+        result = find_callback_opportunities(["pens"], "cooking", "diner")
         growth_refs = [cb for cb in result if "pancakes" in cb.get("reference", "").lower()]
         assert len(growth_refs) > 0
 
     @patch("src.continuity.engine._load_json", side_effect=_mock_load_json)
     def test_score_capped_at_1(self, mock_json):
-        result = find_callback_opportunities(["pens", "oinks"], "cooking disaster", "diner_interior")
+        result = find_callback_opportunities(["pens", "oinks"], "cooking disaster", "diner")
         for cb in result:
             assert cb["relevance_score"] <= 1.0
 

@@ -49,17 +49,15 @@ class TestRenderConfig:
         assert VERTICAL.width == 1080
         assert VERTICAL.height == 1920
 
-    def test_horizontal_text_box(self):
-        """HORIZONTAL text box: 1200px wide, near bottom of 1080 frame."""
+    def test_horizontal_bubble_max_width(self):
+        """HORIZONTAL max speech bubble width: 500px."""
         from src.video_assembler.render_config import HORIZONTAL
-        assert HORIZONTAL.text_box_width == 1200
-        assert HORIZONTAL.text_box_y == 880
+        assert HORIZONTAL.text_box_width == 500
 
-    def test_vertical_text_box(self):
-        """VERTICAL text box: 900px wide, near bottom of 1920 frame."""
+    def test_vertical_bubble_max_width(self):
+        """VERTICAL max speech bubble width: 450px."""
         from src.video_assembler.render_config import VERTICAL
-        assert VERTICAL.text_box_width == 900
-        assert VERTICAL.text_box_y == 1680
+        assert VERTICAL.text_box_width == 450
 
     def test_both_have_labels(self):
         """Presets have human-readable labels for filenames."""
@@ -67,11 +65,13 @@ class TestRenderConfig:
         assert HORIZONTAL.label == "horizontal"
         assert VERTICAL.label == "vertical"
 
-    def test_text_box_height_same_both_formats(self):
-        """Text box height is the same for both formats."""
+    def test_backward_compat_fields_exist(self):
+        """text_box_height and text_box_y still exist for backward compat."""
         from src.video_assembler.render_config import HORIZONTAL, VERTICAL
-        assert HORIZONTAL.text_box_height == VERTICAL.text_box_height
-        assert HORIZONTAL.text_box_height == 180
+        assert hasattr(HORIZONTAL, "text_box_height")
+        assert hasattr(HORIZONTAL, "text_box_y")
+        assert hasattr(VERTICAL, "text_box_height")
+        assert hasattr(VERTICAL, "text_box_y")
 
 
 # ---------------------------------------------------------------------------
@@ -79,10 +79,10 @@ class TestRenderConfig:
 # ---------------------------------------------------------------------------
 
 class TestTextRendererDualFormat:
-    """Text renderer produces correctly-sized text boxes for each format."""
+    """Text renderer produces auto-sized speech bubbles capped at format max width."""
 
-    def test_horizontal_text_box_width(self):
-        """In horizontal mode, text box is 1200px wide."""
+    def test_horizontal_bubble_within_max(self):
+        """In horizontal mode, bubble width <= 500px (HORIZONTAL max)."""
         from src.video_assembler.render_config import HORIZONTAL
         from src.text_renderer.renderer import render_dialogue_frames
         frames = render_dialogue_frames(
@@ -91,10 +91,10 @@ class TestTextRendererDualFormat:
             frame_rate=30,
             render_config=HORIZONTAL,
         )
-        assert frames[0].width == 1200
+        assert frames[0].width <= 500
 
-    def test_vertical_text_box_width(self):
-        """In vertical mode, text box is 900px wide."""
+    def test_vertical_bubble_within_max(self):
+        """In vertical mode, bubble width <= 450px (VERTICAL max)."""
         from src.video_assembler.render_config import VERTICAL
         from src.text_renderer.renderer import render_dialogue_frames
         frames = render_dialogue_frames(
@@ -103,18 +103,17 @@ class TestTextRendererDualFormat:
             frame_rate=30,
             render_config=VERTICAL,
         )
-        assert frames[0].width == 900
+        assert frames[0].width <= 450
 
-    def test_default_uses_horizontal(self):
-        """Without render_config, uses horizontal (backward compat)."""
-        from src.text_renderer.renderer import render_dialogue_frames
+    def test_default_bubble_within_max(self):
+        """Without render_config, bubble width <= default max (500px)."""
+        from src.text_renderer.renderer import render_dialogue_frames, BUBBLE_MAX_WIDTH
         frames = render_dialogue_frames(
             character_id="pens",
             text="Hello.",
             frame_rate=30,
         )
-        # Default should be 1200 (horizontal)
-        assert frames[0].width == 1200
+        assert frames[0].width <= BUBBLE_MAX_WIDTH
 
 
 # ---------------------------------------------------------------------------
@@ -126,7 +125,7 @@ class TestSceneBuilderDualFormat:
 
     def _make_scene(self, duration=1):
         return {
-            "background": "diner_interior",
+            "background": "diner",
             "duration_seconds": duration,
             "characters_present": [],
             "character_positions": {},
@@ -185,7 +184,7 @@ class TestComposerDualFormat:
             "scenes": [{
                 "scene_number": 1,
                 "duration_seconds": 1,
-                "background": "diner_interior",
+                "background": "diner",
                 "characters_present": [],
                 "character_positions": {},
                 "character_animations": {},
@@ -302,7 +301,7 @@ class TestQualityCheckDualFormat:
             "episode_id": "EP099", "title": "Test",
             "scenes": [{
                 "scene_number": 1, "duration_seconds": 2,
-                "background": "diner_interior",
+                "background": "diner",
                 "characters_present": [],
                 "character_positions": {},
                 "character_animations": {},
@@ -329,7 +328,7 @@ class TestQualityCheckDualFormat:
             "episode_id": "EP099", "title": "Test",
             "scenes": [{
                 "scene_number": 1, "duration_seconds": 2,
-                "background": "diner_interior",
+                "background": "diner",
                 "characters_present": [],
                 "character_positions": {},
                 "character_animations": {},

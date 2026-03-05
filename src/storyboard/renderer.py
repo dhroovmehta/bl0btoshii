@@ -1,9 +1,9 @@
 """Storyboard renderer — generates a visual grid of scene thumbnails from a script."""
 
 import os
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw, ImageFont, ImageOps
 
-from src.video_assembler.sprite_manager import load_sprite, get_character_position, resolve_scene_positions
+from src.video_assembler.sprite_manager import load_sprite, get_character_position, resolve_scene_positions, get_default_facing
 from src.video_assembler.scene_builder import load_background
 
 ASSETS_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "assets")
@@ -110,14 +110,14 @@ def _render_scene_thumbnail(scene, label_font, dialogue_font):
     Returns:
         PIL Image (THUMB_WIDTH x THUMB_HEIGHT).
     """
-    bg_id = scene.get("background", "diner_interior")
+    bg_id = scene.get("background", "diner")
     characters = scene.get("characters_present", [])
     positions = scene.get("character_positions", {})
     dialogue = scene.get("dialogue", [])
 
     # Load and scale background
     bg = load_background(bg_id)
-    thumb = bg.resize((THUMB_WIDTH, THUMB_HEIGHT), Image.NEAREST).convert("RGBA")
+    thumb = bg.resize((THUMB_WIDTH, THUMB_HEIGHT), Image.LANCZOS).convert("RGBA")
 
     # Resolve positions using the same anti-overlap logic as the video renderer
     resolved = resolve_scene_positions(bg_id, characters, positions)
@@ -133,7 +133,19 @@ def _render_scene_thumbnail(scene, label_font, dialogue_font):
         small_sprite = sprite.resize((s_w, s_h), Image.NEAREST)
 
         # Get resolved position and scale it
-        px, py = resolved.get(char_id, get_character_position(bg_id, positions.get(char_id, "")))
+        raw_pos = resolved.get(char_id)
+        if raw_pos:
+            px, py = raw_pos[0], raw_pos[1]
+            facing = raw_pos[2] if len(raw_pos) > 2 else "right"
+        else:
+            px, py = get_character_position(bg_id, positions.get(char_id, ""))
+            facing = "right"
+
+        # Mirror when desired facing differs from sprite's natural orientation
+        default_facing = get_default_facing(char_id)
+        if facing != default_facing:
+            small_sprite = ImageOps.mirror(small_sprite)
+
         tx = int(px * scale_factor) - s_w // 2
         ty = int(py * scale_factor) - s_h
 

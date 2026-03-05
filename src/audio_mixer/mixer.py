@@ -249,49 +249,13 @@ def mix_episode_audio(
 
 
 def generate_blip_events(script, frame_rate=30):
-    """Generate text blip event timestamps from a script's dialogue.
+    """Disabled — speech bubbles don't use text blips.
 
-    Creates a blip sound for each character of dialogue during the typewriter
-    animation, synced to the frame-by-frame timing.
-
-    Args:
-        script: Episode script dict with scenes containing dialogue.
-        frame_rate: Video frame rate.
+    Previously generated per-character blip sounds synced to the typewriter
+    animation. Disabled when dialogue switched from bottom text box to speech
+    bubbles above characters (D-025).
 
     Returns:
-        List of (timestamp_ms, blip_filename) tuples.
+        Empty list (no blip events).
     """
-    char_blips = _load_character_blips()
-    blip_events = []
-    scene_start_ms = 0
-
-    for scene in script.get("scenes", []):
-        duration_s = scene.get("duration_seconds", 8)
-        dialogue = scene.get("dialogue", [])
-
-        # Dialogue starts 1 second into the scene
-        dialogue_offset_ms = 1000
-        chars_per_second = 12
-        ms_per_char = 1000.0 / chars_per_second
-
-        for line in dialogue:
-            char_id = line.get("character", "pens")
-            text = line.get("text", "")
-            blip_file = char_blips.get(char_id, "text_blip_mid.wav")
-
-            # Generate a blip for every Nth character (not every char — too rapid)
-            blip_interval = 3  # One blip every 3 characters
-            for i, ch in enumerate(text):
-                if ch == " ":
-                    continue
-                if i % blip_interval == 0:
-                    char_time_ms = scene_start_ms + dialogue_offset_ms + (i * ms_per_char)
-                    blip_events.append((char_time_ms, blip_file))
-
-            # Advance dialogue offset for next line
-            line_duration_ms = line.get("duration_ms", len(text) * ms_per_char + 500)
-            dialogue_offset_ms += line_duration_ms
-
-        scene_start_ms += duration_s * 1000
-
-    return blip_events
+    return []

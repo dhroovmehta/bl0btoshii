@@ -16,11 +16,9 @@
     "chill_hangout": 1.0
   },
   "location_weights": {
-    "diner_interior": 1.0,
-    "beach": 1.0,
-    "forest": 1.0,
+    "diner": 1.0,
+    "farmers_market": 1.0,
     "town_square": 1.0,
-    "chubs_office": 1.0,
     "reows_place": 1.0
   },
   "punchline_weights": {

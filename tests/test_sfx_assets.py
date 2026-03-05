@@ -73,7 +73,7 @@ class TestAssetCheckerSfxExtension:
         return {
             "scenes": [
                 {
-                    "background": "diner_interior",
+                    "background": "diner",
                     "characters_present": ["pens"],
                     "character_positions": {"pens": "stool_1"},
                     "character_animations": {"pens": "idle"},

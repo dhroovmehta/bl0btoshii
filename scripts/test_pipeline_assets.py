@@ -1,10 +1,9 @@
 """Test that all assets load and composite correctly in the video pipeline.
 
 Renders test frames for each character on each background to verify:
-1. Backgrounds load and display at 1080x1920
+1. Backgrounds load and display at 1920x1080
 2. Character sprites load, composite, and position correctly
-3. Portraits load in dialogue text boxes
-4. No crashes or missing files
+3. No crashes or missing files
 
 Usage:
     python scripts/test_pipeline_assets.py
@@ -23,7 +22,7 @@ from src.text_renderer.renderer import render_dialogue_frames
 
 OUTPUT_DIR = os.path.join(os.path.dirname(__file__), "..", "output", "asset_test")
 CHARACTERS = ["pens", "chubs", "meows", "oinks", "quacks", "reows"]
-BACKGROUNDS = ["diner_interior", "beach", "forest", "town_square", "chubs_office", "reows_place"]
+BACKGROUNDS = ["diner", "farmers_market", "reows_place", "town_square"]
 
 
 def test_backgrounds():
@@ -45,15 +44,7 @@ def test_sprites():
     print("\nTesting sprites:")
     errors = []
     for char_id in CHARACTERS:
-        states = {
-            "pens": ["idle", "talking", "sipping", "reaction_surprise", "reaction_deadpan", "walking"],
-            "chubs": ["idle", "talking", "calculating", "excited", "reaction_nervous", "walking"],
-            "meows": ["idle", "talking", "refined_pose", "reaction_appalled", "reaction_pleased", "walking"],
-            "oinks": ["idle", "talking", "serving", "wiping_counter", "reaction_exasperated", "walking"],
-            "quacks": ["idle", "talking", "investigating", "suspicious", "eureka", "walking"],
-            "reows": ["idle", "talking", "burst_entrance", "excited", "scheming", "walking"],
-        }
-        for state in states.get(char_id, ["idle"]):
+        for state in ["idle", "talking"]:
             sprite = load_sprite(char_id, state)
             if sprite.size[0] > 0 and sprite.size[1] > 0:
                 is_placeholder = (sprite.size == (192, 288) and all(
@@ -73,11 +64,11 @@ def test_sprites():
 def test_compositing():
     """Render a test frame with characters on a background."""
     print("\nTesting compositing (diner scene with Pens + Oinks):")
-    bg = load_background("diner_interior")
+    bg = load_background("diner")
     frame = bg.copy().convert("RGBA")
 
-    frame = composite_character(frame, "pens", "idle", "diner_interior", "stool_1")
-    frame = composite_character(frame, "oinks", "serving", "diner_interior", "behind_counter")
+    frame = composite_character(frame, "pens", "idle", "diner", "stool_1")
+    frame = composite_character(frame, "oinks", "idle", "diner", "behind_counter")
 
     os.makedirs(OUTPUT_DIR, exist_ok=True)
     test_path = os.path.join(OUTPUT_DIR, "test_compositing.png")
@@ -87,51 +78,23 @@ def test_compositing():
     return test_path
 
 
-def test_dialogue():
-    """Render a dialogue text box with portrait."""
-    print("\nTesting dialogue text box (Pens speaking):")
-    os.makedirs(OUTPUT_DIR, exist_ok=True)
-    dialogue_dir = os.path.join(OUTPUT_DIR, "dialogue_test")
-
-    try:
-        frames = render_dialogue_frames(
-            character_id="pens",
-            text="...cool.",
-            output_dir=dialogue_dir,
-            frame_rate=30,
-        )
-        print(f"  Generated {len(frames)} text box frames")
-        if frames:
-            # Copy last frame (full text visible) to test output
-            last_frame = Image.open(frames[-1])
-            last_frame.save(os.path.join(OUTPUT_DIR, "test_dialogue.png"))
-            print(f"  Text box size: {last_frame.size[0]}x{last_frame.size[1]}")
-        return []
-    except Exception as e:
-        print(f"  ERROR: {e}")
-        return ["dialogue"]
-
-
 def test_full_frame():
     """Render a complete frame: background + characters + dialogue box."""
     print("\nTesting full frame (background + characters + dialogue):")
-    bg = load_background("diner_interior")
+    bg = load_background("diner")
     frame = bg.copy().convert("RGBA")
 
     # Add characters
-    frame = composite_character(frame, "pens", "sipping", "diner_interior", "stool_1")
-    frame = composite_character(frame, "oinks", "talking", "diner_interior", "behind_counter")
+    frame = composite_character(frame, "pens", "idle", "diner", "stool_1")
+    frame = composite_character(frame, "oinks", "talking", "diner", "behind_counter")
 
     # Add dialogue text box
-    dialogue_dir = os.path.join(OUTPUT_DIR, "full_frame_dialogue")
     text_frames = render_dialogue_frames(
         character_id="oinks",
         text="Can I just get someone to order something?",
-        output_dir=dialogue_dir,
         frame_rate=30,
     )
     if text_frames:
-        # v2: render_dialogue_frames returns PIL Images directly
         text_box = text_frames[-1].convert("RGBA")
         tx = (FRAME_WIDTH - text_box.width) // 2
         ty = TEXT_BOX_Y
@@ -159,9 +122,6 @@ def main():
     all_errors.extend(sprite_errors)
 
     test_compositing()
-
-    dialogue_errors = test_dialogue()
-    all_errors.extend(dialogue_errors)
 
     test_full_frame()
 

@@ -29,7 +29,7 @@ def sample_script():
             {
                 "scene_number": 1,
                 "duration_seconds": 10,
-                "background": "diner_interior",
+                "background": "diner",
                 "characters_present": ["pens", "oinks"],
                 "character_positions": {
                     "pens": "stool_1",
@@ -37,7 +37,7 @@ def sample_script():
                 },
                 "character_animations": {
                     "pens": "idle",
-                    "oinks": "serving",
+                    "oinks": "idle",
                 },
                 "dialogue": [
                     {
@@ -56,11 +56,11 @@ def sample_script():
             "title": "Test Episode",
             "total_duration_seconds": 10,
             "characters_featured": ["pens", "oinks"],
-            "primary_location": "diner_interior",
+            "primary_location": "diner",
             "content_pillar": "everyday_life",
             "punchline_type": "deadpan",
             "situation_type": "everyday_life",
-            "location": "diner_interior",
+            "location": "diner",
             "created_at": "2026-02-15T00:00:00Z",
         },
     }
@@ -97,7 +97,7 @@ def sample_ideas():
             "character_a": "pens",
             "character_b": "oinks",
             "additional_characters": [],
-            "location": "diner_interior",
+            "location": "diner",
             "situation": "everyday_life",
             "punchline_type": "deadpan",
             "concept": "Pens orders water again",
@@ -121,11 +121,11 @@ def sample_ideas():
             "character_a": "quacks",
             "character_b": "reows",
             "additional_characters": [],
-            "location": "beach",
+            "location": "farmers_market",
             "situation": "mystery_investigation",
             "punchline_type": "reveal",
             "concept": "Quacks investigates a missing coconut",
-            "title": "Quacks + Reows | Beach",
+            "title": "Quacks + Reows | Farmers Market",
             "trending_tie_in": None,
             "continuity_callbacks": [],
         },

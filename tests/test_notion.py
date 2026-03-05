@@ -91,13 +91,13 @@ class TestBuildScriptBody:
             "generation_params": {
                 "character_a": "pens",
                 "character_b": "chubs",
-                "location": "diner_interior",
+                "location": "diner",
                 "situation": "everyday_life",
             },
             "scenes": [
                 {
                     "scene_number": 1,
-                    "background": "diner_interior",
+                    "background": "diner",
                     "duration_seconds": 10,
                     "action_description": "Pens walks in",
                     "dialogue": [
@@ -130,7 +130,7 @@ class TestBuildScriptBody:
             for b in blocks if b["type"] != "divider"
         )
         assert "pens" in all_text.lower()
-        assert "Diner Interior" in all_text
+        assert "Diner" in all_text
 
     def test_contains_scene_headings(self, sample_script):
         blocks = _build_script_body(sample_script)
@@ -321,10 +321,10 @@ class TestBuildProperties:
         script = {
             "episode_id": "EP001", "title": "Test",
             "created_at": "2026-01-01T00:00:00Z",
-            "metadata": {"primary_location": "chubs_office"},
+            "metadata": {"primary_location": "farmers_market"},
         }
         props = _build_properties(script)
-        assert props["Location"]["select"]["name"] == "Chubs Office"
+        assert props["Location"]["select"]["name"] == "Farmers Market"
 
     def test_underscore_situation_formatted(self):
         script = {

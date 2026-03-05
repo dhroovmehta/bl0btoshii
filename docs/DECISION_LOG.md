@@ -4,6 +4,77 @@ Architectural and design decisions made during development.
 
 ---
 
+## D-029: External watermark removal workflow (2026-02-22)
+
+**Context:** The `clean_background()` function in `remove_watermarks.py` removed Nano Banana Pro watermarks by copying a strip of pixels from directly above the watermark area. This worked when the watermark sat on uniform textures, but at material boundaries (grass meeting dirt, wood plank edges) it created a visible rectangular patch — the copied strip had a different texture than what it replaced. The artifact was present in every background except the diner (which has a flat foreground).
+
+**Decision:** Watermarks are now removed externally before source images enter the pipeline. `process_single_background()` no longer calls `clean_background()` — it only crops dark edges and LANCZOS-resizes. The user removes watermarks using an online tool (or any method of their choosing) and provides clean PNGs as source input. This cleanly separates "art cleanup" (manual/external) from "pipeline processing" (automated).
+
+**Alternative considered:** Improve `clean_background()` with content-aware inpainting (e.g., using OpenCV's `inpaint()` or a texture synthesis approach). Rejected — adds significant complexity and dependency weight for a step the user can handle more accurately in seconds with an online tool. The pipeline should process, not repair.
+
+---
+
+## D-028: LANCZOS resampling for background images (2026-02-22)
+
+**Context:** All background resize calls used `Image.NEAREST` (nearest-neighbor). At non-integer scale factors — the standard case, since source images are 2752x1536 and pipeline targets are 1920x1080 (0.698x) — nearest-neighbor produces uneven column widths. Each source pixel maps to either 0 or 1 output pixel, creating a repeating pattern of wider and narrower columns visible as vertical seam artifacts in smooth illustrations.
+
+**Decision:** Switched all background resize calls to `Image.LANCZOS` across 4 files: `scene_builder.py` (3 locations — parallax layers, vertical backgrounds, single-file backgrounds), `process_background.py`, `resize_for_pipeline.py`, and `storyboard/renderer.py`. Character sprites remain `Image.NEAREST` because they are pixel art — LANCZOS would blur the intentionally crisp pixel edges. Added 3 mock-based tests that intercept `Image.resize()` calls and verify the resampling method parameter is LANCZOS (not NEAREST) for backgrounds.
+
+**Alternative considered:** Pre-render source backgrounds at exact pipeline dimensions (1920x1080 and 1080x1920) to avoid resizing entirely. Rejected — Nano Banana Pro outputs at fixed resolutions (2752x1536), so resize is unavoidable. LANCZOS handles this correctly with smooth interpolation.
+
+---
+
+## D-027: Per-character default facing direction (2026-02-22)
+
+**Context:** The initial facing implementation (D-026) used `if facing == "left": mirror()` — which assumed all sprite source images face right. Pixel mass analysis of all 12 sprites revealed this was wrong: only Pens and Reows face right in their source art. Chubs, Meows, Oinks, and Quacks face left. The result was that when Oinks (naturally left-facing) was placed at a left-facing position, the mirror flipped her to face RIGHT — both characters ended up facing the same direction.
+
+**Decision:** Added `default_facing` to each character in `characters.json` (determined via pixel mass analysis of alpha channels — comparing left-half vs right-half pixel density). Mirror logic changed from `if facing == "left"` to `if facing != default_facing`. This means: a sprite is only flipped when the scene demands a direction opposite to its natural pose. Applied consistently across `sprite_manager.py`, `storyboard/renderer.py`, and `generate_positioning_test.py`.
+
+Ground_y values also raised across all locations (diner H 0.92, farmers_market H 0.90, town_square H 0.88, reows_place H 0.90) to push characters into the visual foreground. Previous values placed characters in the mid-ground, making them look like they were floating in the grass or floor.
+
+**Alternative considered:** Re-render all sprites to face right. Rejected — would require 12 new Nano Banana Pro generations and processing. The `default_facing` approach is data-driven and adapts automatically to however the artist produces the sprites.
+
+---
+
+## D-026: Conversational positioning and sprite facing (2026-02-22)
+
+**Context:** Characters were positioned at location-specific named positions (stool_1, bench_left, etc.) but the x_pct values were calibrated for visual spread rather than conversational distance. Primary pairs were at 0.14/0.83 or 0.34/0.55 — either too far apart (characters look disconnected) or too close (overlap in vertical mode where 1080px width gives less room). The `facing` field was defined in `locations.json` but never read by the rendering pipeline — all sprites rendered facing right regardless.
+
+**Decision:** Standardized all primary conversation positions at x_pct 0.35 and 0.65 across all 4 locations. This 30% gap produces comfortable conversational distance at both orientations (576px horizontal, 324px vertical). First two positions per location are always the primary pair and face each other (left faces right, right faces left). `resolve_ground_position()` returns `(x, y, facing)` 3-tuples, and `composite_character()` applies `ImageOps.mirror()` for `facing == "left"`. Backward compatibility maintained: `get_character_position()` still returns 2-tuples, and `composite_character()` accepts both 2-tuple and 3-tuple position arguments.
+
+**Alternative considered:** Keep positions spread out and only fix facing. Rejected — the wide separation (e.g., 0.14 and 0.83 = 66% of frame width apart) looked wrong for characters in conversation. Natural talking distance is roughly 1.5-2.5 character widths, which maps to 0.35/0.65 in both orientations.
+
+---
+
+## D-025: Speech bubble dialogue system (2026-02-21)
+
+**Context:** v1 dialogue rendered as a fixed-width dark box at the bottom of the screen with a character portrait and name label. This looked generic and didn't match the Bootoshi.ai visual style, where dialogue appears as floating speech bubbles above the speaking character — dark background, white pixel text, triangular tail pointing down.
+
+**Decision:** Replaced the bottom-screen text box with auto-sized speech bubbles positioned above each speaking character. Bubbles use the same Press Start 2P font at 16px, dark background (20, 20, 30 at 94% opacity), rounded corners (6px radius), and a triangular tail (12px tall, 16px wide). Bubble width auto-sizes based on text content, capped at format-specific max (500px horizontal, 450px vertical). Scene builder pre-computes sprite heights and positions each bubble centered on the character's X coordinate, above their sprite top with an 8px gap. Frame-bound clamping prevents bubbles from going off-screen.
+
+Audio blips disabled — `generate_blip_events()` returns empty list. Speech bubbles are a visual-only system with typewriter text animation (12 chars/sec + 2s hold).
+
+**Alternative considered:** Keep bottom text box but restyle it to match Bootoshi colors. Rejected — character-relative floating bubbles are the defining visual element of Bootoshi.ai's dialogue system and create much stronger visual connection between speaker and text.
+
+---
+
+## D-024: Location simplification — 6 to 4 locations (2026-02-21)
+
+**Context:** The Bootoshi visual redesign required regenerating all backgrounds in a new art style. With 6 locations, that meant creating 12+ background images (horizontal + vertical for each). Three locations (beach, forest, chubs_office) were rarely used and didn't add meaningful variety to episode settings. Reducing locations simplifies asset management and focuses the show's visual identity.
+
+**Decision:** Simplified from 6 locations to 4:
+- `diner` (renamed from `diner_interior` for consistency) — kept as the primary location
+- `farmers_market` (new) — replaces beach/forest as the outdoor location
+- `town_square` — kept unchanged
+- `reows_place` — kept unchanged
+- Removed: `beach`, `forest`, `chubs_office`
+
+Each location has both horizontal (1920x1080) and vertical (1080x1920) single-file backgrounds. The scene builder auto-selects the correct orientation based on render target dimensions. All situation `best_locations` arrays updated — removed locations mapped to the most thematically appropriate remaining location (e.g., beach → farmers_market, chubs_office → diner).
+
+**Alternative considered:** Keep all 6 locations and generate backgrounds for each. Rejected — the 3 removed locations were rarely selected by the slot machine, added maintenance burden, and didn't meaningfully expand the show's world. Fewer, better-crafted locations serve the visual quality goals of the Bootoshi redesign.
+
+---
+
 ## D-023: YouTube dual-publish (2026-02-18)
 
 **Context:** After Stage 4 added dual format rendering (horizontal 1920x1080 + vertical 1080x1920), both videos were uploaded to Google Drive but only one was published to YouTube. The horizontal video should be a regular YouTube video; the vertical video should be a YouTube Short. YouTube classifies Shorts by the `#Shorts` hashtag in the description plus vertical aspect ratio.

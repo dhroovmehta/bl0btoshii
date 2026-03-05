@@ -55,7 +55,7 @@ def _make_test_script(episode_id="DRAFT-EP-001"):
         "generation_params": {
             "character_a": "oinks",
             "character_b": "reows",
-            "location": "diner_interior",
+            "location": "diner",
             "situation": "everyday_life",
             "punchline_type": "callback_gag",
             "trending_tie_in": None,
@@ -65,7 +65,7 @@ def _make_test_script(episode_id="DRAFT-EP-001"):
         "metadata": {
             "total_duration_seconds": 35,
             "characters_featured": ["oinks", "reows"],
-            "primary_location": "diner_interior",
+            "primary_location": "diner",
             "content_pillar": "everyday_life",
             "punchline_type": "callback_gag",
         },
@@ -73,7 +73,7 @@ def _make_test_script(episode_id="DRAFT-EP-001"):
             {
                 "scene_number": 1,
                 "duration_seconds": 10,
-                "background": "diner_interior",
+                "background": "diner",
                 "characters_present": ["oinks", "reows"],
                 "character_positions": {
                     "oinks": "stool_1",
@@ -106,7 +106,7 @@ def _make_test_script(episode_id="DRAFT-EP-001"):
             {
                 "scene_number": 2,
                 "duration_seconds": 10,
-                "background": "diner_interior",
+                "background": "diner",
                 "characters_present": ["oinks", "reows"],
                 "character_positions": {
                     "oinks": "stool_1",
@@ -137,7 +137,7 @@ def _make_test_script(episode_id="DRAFT-EP-001"):
             {
                 "scene_number": 3,
                 "duration_seconds": 12,
-                "background": "diner_interior",
+                "background": "diner",
                 "characters_present": ["oinks", "reows"],
                 "character_positions": {
                     "oinks": "stool_1",

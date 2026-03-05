@@ -20,8 +20,8 @@ ASSETS_DIR = os.path.join(os.path.dirname(__file__), "..", "assets")
 SPRITE_MAX_W = 192
 SPRITE_MAX_H = 288
 PORTRAIT_SIZE = 48
-BG_WIDTH = 1080
-BG_HEIGHT = 1920
+BG_WIDTH = 1920
+BG_HEIGHT = 1080
 
 CHARACTER_FOLDERS = ["pens", "chubs", "meows", "oinks", "quacks", "reows"]
 
@@ -108,8 +108,12 @@ def process_portraits():
 
 
 def process_backgrounds():
-    """Resize all backgrounds to BG_WIDTH x BG_HEIGHT."""
-    print(f"\nBackgrounds (resize to {BG_WIDTH}x{BG_HEIGHT}):")
+    """Resize all backgrounds to correct dimensions.
+
+    Horizontal files ({name}.png) → 1920x1080
+    Vertical files ({name}_vertical.png) → 1080x1920
+    """
+    print(f"\nBackgrounds:")
     bg_dir = os.path.join(ASSETS_DIR, "backgrounds")
     if not os.path.exists(bg_dir):
         print("  SKIP: backgrounds/ not found")
@@ -122,12 +126,19 @@ def process_backgrounds():
         img = Image.open(path).convert("RGB")
         orig_size = img.size
 
-        if img.size != (BG_WIDTH, BG_HEIGHT):
-            img = img.resize((BG_WIDTH, BG_HEIGHT), Image.NEAREST)
-            img.save(path)
-            print(f"  {filename}: {orig_size[0]}x{orig_size[1]} → {BG_WIDTH}x{BG_HEIGHT}")
+        # Vertical backgrounds use flipped dimensions
+        if "_vertical" in filename:
+            target = (BG_HEIGHT, BG_WIDTH)  # 1080x1920
         else:
-            print(f"  {filename}: already {BG_WIDTH}x{BG_HEIGHT}")
+            target = (BG_WIDTH, BG_HEIGHT)  # 1920x1080
+
+        if img.size != target:
+            # LANCZOS for backgrounds — smooth illustrations, not pixel art
+            img = img.resize(target, Image.LANCZOS)
+            img.save(path)
+            print(f"  {filename}: {orig_size[0]}x{orig_size[1]} → {target[0]}x{target[1]}")
+        else:
+            print(f"  {filename}: already {target[0]}x{target[1]}")
 
 
 def main():

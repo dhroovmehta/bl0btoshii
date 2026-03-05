@@ -87,7 +87,7 @@ class TestCamera:
     def test_camera_from_scene_no_spec(self):
         """Scene with no camera spec returns static camera at origin."""
         from src.video_assembler.camera import Camera, camera_from_scene
-        scene = {"duration_seconds": 10, "background": "diner_interior"}
+        scene = {"duration_seconds": 10, "background": "diner"}
         start, end = camera_from_scene(scene)
         assert start.x == 0.0 and start.y == 0.0 and start.zoom == 1.0
         assert end.x == 0.0 and end.y == 0.0 and end.zoom == 1.0
@@ -187,6 +187,54 @@ class TestParallaxLoading:
             layers = load_background_layers("test_loc")
         assert len(layers) == 4
 
+    def test_vertical_target_loads_vertical_file(self, tmp_path):
+        """When target is vertical (height > width), load _vertical.png if it exists."""
+        from src.video_assembler.scene_builder import load_background_layers
+
+        bg_dir = tmp_path / "backgrounds"
+        bg_dir.mkdir()
+        # Create both horizontal and vertical files with different colors
+        Image.new("RGB", (1920, 1080), (255, 0, 0)).save(str(bg_dir / "test_loc.png"))
+        Image.new("RGB", (1080, 1920), (0, 255, 0)).save(str(bg_dir / "test_loc_vertical.png"))
+
+        with patch("src.video_assembler.scene_builder.ASSETS_DIR", str(tmp_path)):
+            layers = load_background_layers("test_loc", target_width=1080, target_height=1920)
+        assert len(layers) == 1
+        assert layers[0].size == (1080, 1920)
+        # Should load the green vertical file, not the red horizontal one
+        pixel = layers[0].getpixel((0, 0))
+        assert pixel[1] == 255, "Should load the vertical (green) file"
+
+    def test_vertical_target_falls_back_to_horizontal(self, tmp_path):
+        """When vertical file doesn't exist, fall back to horizontal and resize."""
+        from src.video_assembler.scene_builder import load_background_layers
+
+        bg_dir = tmp_path / "backgrounds"
+        bg_dir.mkdir()
+        # Only horizontal file exists
+        Image.new("RGB", (1920, 1080), (255, 0, 0)).save(str(bg_dir / "test_loc.png"))
+
+        with patch("src.video_assembler.scene_builder.ASSETS_DIR", str(tmp_path)):
+            layers = load_background_layers("test_loc", target_width=1080, target_height=1920)
+        assert len(layers) == 1
+        assert layers[0].size == (1080, 1920)
+
+    def test_horizontal_target_ignores_vertical_file(self, tmp_path):
+        """When target is horizontal, always load the standard file."""
+        from src.video_assembler.scene_builder import load_background_layers
+
+        bg_dir = tmp_path / "backgrounds"
+        bg_dir.mkdir()
+        Image.new("RGB", (1920, 1080), (255, 0, 0)).save(str(bg_dir / "test_loc.png"))
+        Image.new("RGB", (1080, 1920), (0, 255, 0)).save(str(bg_dir / "test_loc_vertical.png"))
+
+        with patch("src.video_assembler.scene_builder.ASSETS_DIR", str(tmp_path)):
+            layers = load_background_layers("test_loc", target_width=1920, target_height=1080)
+        assert len(layers) == 1
+        # Should load the red horizontal file
+        pixel = layers[0].getpixel((0, 0))
+        assert pixel[0] == 255, "Should load the horizontal (red) file"
+
 
 # ---------------------------------------------------------------------------
 # 16:9 frame dimensions
@@ -213,7 +261,7 @@ class TestFrameDimensions:
             load_background, FRAME_WIDTH, FRAME_HEIGHT, clear_warnings,
         )
         clear_warnings()
-        bg = load_background("diner_interior")
+        bg = load_background("diner")
         assert bg.size == (FRAME_WIDTH, FRAME_HEIGHT)
 
 
@@ -235,11 +283,11 @@ class TestTextRendererV2:
         assert len(frames) > 0
         assert isinstance(frames[0], Image.Image)
 
-    def test_text_box_width_for_widescreen(self):
-        """Text box must be wider for 16:9 format."""
-        from src.text_renderer.renderer import BOX_WIDTH
-        # Should be wider than v1's 900px
-        assert BOX_WIDTH >= 1100
+    def test_bubble_max_width_reasonable(self):
+        """Speech bubble max width should be reasonable for widescreen."""
+        from src.text_renderer.renderer import BUBBLE_MAX_WIDTH
+        # Bubbles shouldn't be full-screen wide — they float above characters
+        assert 300 <= BUBBLE_MAX_WIDTH <= 700
 
     def test_text_box_is_rgba(self):
         """Text box frames must be RGBA (for alpha compositing)."""
@@ -275,7 +323,7 @@ class TestSceneBuilderV2:
         from src.video_assembler.scene_builder import build_scene_frames
 
         scene = {
-            "background": "diner_interior",
+            "background": "diner",
             "duration_seconds": 2,
             "characters_present": ["pens"],
             "character_positions": {"pens": "stool_1"},
@@ -293,7 +341,7 @@ class TestSceneBuilderV2:
         from src.video_assembler.scene_builder import build_scene_frames
 
         scene = {
-            "background": "diner_interior",
+            "background": "diner",
             "duration_seconds": 2,
             "characters_present": [],
             "character_positions": {},
@@ -310,7 +358,7 @@ class TestSceneBuilderV2:
         from src.video_assembler.scene_builder import build_scene_frames, FRAME_WIDTH, FRAME_HEIGHT
 
         scene = {
-            "background": "diner_interior",
+            "background": "diner",
             "duration_seconds": 1,
             "characters_present": [],
             "character_positions": {},
@@ -327,7 +375,7 @@ class TestSceneBuilderV2:
         from src.video_assembler.scene_builder import build_scene_frames
 
         scene = {
-            "background": "diner_interior",
+            "background": "diner",
             "duration_seconds": 2,
             "characters_present": [],
             "character_positions": {},
@@ -368,7 +416,7 @@ class TestComposerStreaming:
             "scenes": [{
                 "scene_number": 1,
                 "duration_seconds": 1,
-                "background": "diner_interior",
+                "background": "diner",
                 "characters_present": [],
                 "character_positions": {},
                 "character_animations": {},
@@ -395,7 +443,7 @@ class TestComposerStreaming:
             "scenes": [{
                 "scene_number": 1,
                 "duration_seconds": 1,
-                "background": "diner_interior",
+                "background": "diner",
                 "characters_present": [],
                 "character_positions": {},
                 "character_animations": {},
@@ -440,3 +488,90 @@ class TestEndCardV2:
 
         frames = list(generate_end_card_frames("Test", "EP001"))
         assert len(frames) == 90  # 3s * 30fps
+
+
+# ---------------------------------------------------------------------------
+# Speech bubble positioning — bubbles above characters
+# ---------------------------------------------------------------------------
+
+class TestSpeechBubblePositioning:
+    """Speech bubbles must be positioned above the speaking character."""
+
+    def test_bubble_above_character(self):
+        """When a character speaks, the bubble should appear above their head."""
+        from src.video_assembler.scene_builder import (
+            build_scene_frames, scale_position_v1, FRAME_WIDTH, FRAME_HEIGHT,
+        )
+        from src.video_assembler.sprite_manager import load_sprite
+
+        scene = {
+            "background": "diner",
+            "duration_seconds": 3,
+            "characters_present": ["pens"],
+            "character_positions": {"pens": "stool_1"},
+            "character_animations": {"pens": "idle"},
+            "dialogue": [{"character": "pens", "text": "Hello.", "duration_ms": 2500}],
+            "sfx_triggers": [],
+        }
+        frame_iter, total_frames, _ = build_scene_frames(scene, frame_offset=0)
+
+        # Skip 30 frames (1 second intro) to reach dialogue
+        frames = list(frame_iter)
+        dialogue_frame = frames[35]  # During dialogue
+
+        # Get character's screen position
+        # stool_1 is (370, 1300) in v1 coordinates
+        cx, cy = scale_position_v1(370, 1300, target_width=FRAME_WIDTH, target_height=FRAME_HEIGHT)
+        sprite = load_sprite("pens", "idle")
+        char_top = cy - sprite.height
+
+        # Convert to numpy to find the bubble region
+        import numpy as np
+        arr = np.array(dialogue_frame)
+
+        # The bubble should NOT be at the bottom of the screen (old text_box_y=880)
+        # It should be above the character's head (char_top area)
+        # Check that there are opaque non-background pixels above the character
+        bubble_region = arr[:max(0, char_top), :, :]
+        # There should be some white-ish text pixels in this region
+        white_pixels = np.sum(
+            (bubble_region[:, :, 0] > 200) & (bubble_region[:, :, 1] > 200) & (bubble_region[:, :, 2] > 200)
+        )
+        assert white_pixels > 0, "Expected speech bubble text above character head"
+
+    def test_bubble_not_at_old_fixed_position(self):
+        """Bubble should NOT be at the old fixed text_box_y position (880)."""
+        from src.video_assembler.scene_builder import build_scene_frames, FRAME_HEIGHT
+
+        scene = {
+            "background": "diner",
+            "duration_seconds": 3,
+            "characters_present": ["pens"],
+            "character_positions": {"pens": "stool_1"},
+            "character_animations": {"pens": "idle"},
+            "dialogue": [{"character": "pens", "text": "Hello.", "duration_ms": 2500}],
+            "sfx_triggers": [],
+        }
+
+        # Render the same scene with and without dialogue
+        frame_iter_d, _, _ = build_scene_frames(scene, frame_offset=0)
+        frames_with_dialogue = list(frame_iter_d)
+
+        no_dialogue_scene = dict(scene, dialogue=[])
+        frame_iter_nd, _, _ = build_scene_frames(no_dialogue_scene, frame_offset=0)
+        frames_no_dialogue = list(frame_iter_nd)
+
+        import numpy as np
+        with_d = np.array(frames_with_dialogue[35])
+        without_d = np.array(frames_no_dialogue[min(35, len(frames_no_dialogue) - 1)])
+
+        # Compare the bottom strip (y=850-1080) — old text_box_y was 880
+        # If bubble moved above character, the bottom strips should be nearly identical
+        bottom_diff = np.abs(with_d[850:, :, :].astype(int) - without_d[850:, :, :].astype(int))
+        significant_diff_pixels = np.sum(bottom_diff > 30)  # Pixels differing by > 30
+        # The old 1200x180 text box would change ~600k+ channel values.
+        # With bubble above character, bottom strip changes come only from
+        # sprite state differences (idle → talking) where the character body
+        # overlaps the y=850-1080 zone. Sprite diffs produce ~40k values.
+        assert significant_diff_pixels < 60000, \
+            f"Bottom strip differs significantly ({significant_diff_pixels} pixels) — bubble may still be at old position"

@@ -4,7 +4,7 @@
       "id": "everyday_life",
       "name": "Everyday Life",
       "description": "Relatable daily situations — ordering food, waiting, small talk",
-      "best_locations": ["diner_interior", "town_square", "beach"],
+      "best_locations": ["diner", "town_square", "farmers_market"],
       "templates": [
         "{char_a} tries to order food but {char_b} complicates it",
         "{char_a} and {char_b} are waiting for something that never comes",
@@ -17,7 +17,7 @@
       "id": "mystery_investigation",
       "name": "Mystery / Investigation",
       "description": "Quacks-driven — something mundane gets blown out of proportion",
-      "best_locations": ["diner_interior", "forest", "town_square"],
+      "best_locations": ["diner", "town_square", "farmers_market"],
       "best_characters": ["quacks"],
       "templates": [
         "{char_a} notices something 'suspicious' about {location}",
@@ -31,7 +31,7 @@
       "id": "scheme_adventure",
       "name": "Scheme / Adventure",
       "description": "Reows-driven — a wild idea, someone gets dragged along",
-      "best_locations": ["beach", "forest", "diner_interior"],
+      "best_locations": ["diner", "reows_place", "town_square"],
       "best_characters": ["reows"],
       "templates": [
         "{char_a} has a 'great idea' and needs {char_b}'s help",
@@ -45,7 +45,7 @@
       "id": "business_opportunity",
       "name": "Business Opportunity",
       "description": "Chubs-driven — everything is a deal, a pitch, or an optimization",
-      "best_locations": ["diner_interior", "chubs_office", "town_square"],
+      "best_locations": ["diner", "town_square", "farmers_market"],
       "best_characters": ["chubs"],
       "templates": [
         "{char_a} tries to monetize {everyday_thing}",
@@ -59,7 +59,7 @@
       "id": "diplomatic_incident",
       "name": "Diplomatic Incident",
       "description": "Meows-driven — formality meets casual island life",
-      "best_locations": ["diner_interior", "town_square"],
+      "best_locations": ["diner", "town_square"],
       "best_characters": ["meows"],
       "templates": [
         "{char_a} treats a simple interaction as a diplomatic negotiation",
@@ -73,7 +73,7 @@
       "id": "chill_hangout",
       "name": "Chill Hangout",
       "description": "Pens-driven — calm vibes while chaos happens around him",
-      "best_locations": ["diner_interior", "beach"],
+      "best_locations": ["diner", "farmers_market"],
       "best_characters": ["pens"],
       "templates": [
         "{char_a} just wants to sit quietly but {char_b} has other plans",

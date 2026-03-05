@@ -113,7 +113,7 @@ class TestSceneBuilderWarnings:
         """Loading a real background should NOT produce any warnings."""
         from src.video_assembler.scene_builder import load_background, get_warnings, clear_warnings
         clear_warnings()
-        load_background("diner_interior")
+        load_background("diner")
         warnings = get_warnings()
         assert len(warnings) == 0
 
@@ -312,7 +312,7 @@ class TestAssetCheckMusic:
             "metadata": {"mood": "playful"},
             "scenes": [
                 {
-                    "background": "diner_interior",
+                    "background": "diner",
                     "characters_present": ["pens"],
                     "sfx_triggers": [],
                     "dialogue": [],

@@ -78,10 +78,10 @@ def staccato_envelope(samples, staccato=0.6):
 
 def save_wav(filename, samples, sample_rate=SAMPLE_RATE):
     """Save numpy array as 16-bit WAV file."""
-    # Normalize to prevent clipping
+    # Normalize to a quiet level — mixer.py applies an additional -20dB on top of this
     peak = np.max(np.abs(samples))
     if peak > 0:
-        samples = samples / peak * 0.8
+        samples = samples / peak * 0.25
     samples_16 = (samples * 32767).astype(np.int16)
     with wave.open(filename, "w") as f:
         f.setnchannels(1)
@@ -309,7 +309,7 @@ def generate_upbeat_theme():
 
     G major, 160 BPM, rapid arpeggios and driving bass.
     """
-    bpm = 160
+    bpm = 100
     beat = 60.0 / bpm
     eighth = beat / 2
     sixteenth = beat / 4

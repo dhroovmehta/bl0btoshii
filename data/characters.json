@@ -10,8 +10,8 @@
       "signature_prop": "diet soda (always in flipper)",
       "catchphrases": ["...cool.", "I'm good.", "*sips diet soda*", "...yep.", "Sounds like a you problem."],
       "dialogue_style": "Minimal. 1-5 words max per line. Never explains himself. Uses ellipses frequently.",
-      "visual_notes": "Short, round black and white body, small flipper-wings, maroon crest on head. Diet soda always visible.",
-      "design_reference": "Pen Pen from Neon Genesis Evangelion",
+      "visual_notes": "Short compact penguin, black and white body, red spiky crest swept backwards, orange beak and feet, diet soda in right flipper. Simple black pixel-line eyes.",
+      "design_reference": "Bootoshi-style modern pixel art",
       "relationships": {
         "reows": "Tolerates his chaos with quiet amusement. The odd couple.",
         "oinks": "Quiet comfortable friendship. Can sit in silence together.",
@@ -19,7 +19,8 @@
         "chubs": "Respects the hustle. Occasionally gives surprisingly sharp business advice.",
         "meows": "Finds the formality mildly entertaining."
       },
-      "sprite_states": ["idle", "talking", "sipping", "reaction_surprise", "reaction_deadpan", "walking"],
+      "sprite_states": ["idle", "talking"],
+      "default_facing": "right",
       "text_blip_sound": "text_blip_low.wav",
       "name_color": "#4FC3F7"
     },
@@ -30,11 +31,11 @@
       "archetype": "The Mogul",
       "personality_traits": ["business-minded", "opportunistic", "friendly", "analytical", "always networking", "genuinely generous"],
       "comedy_function": "Monetizes everything. Sees business opportunities in the most inappropriate situations.",
-      "signature_prop": "small tie or briefcase",
+      "signature_prop": "none",
       "catchphrases": ["What's the ROI on that?", "I see a market opportunity here.", "Let me run the numbers.", "Have you considered franchising?", "This is bullish."],
       "dialogue_style": "Business jargon in casual contexts. Speaks in pitches. Medium-length lines.",
-      "visual_notes": "Large, round, blob-like seal body. Widest silhouette. Small tie. Briefcase when walking.",
-      "design_reference": "Generic seal with business accessories",
+      "visual_notes": "Stocky grey seal, slightly pudgy, cool true grey fur with lighter grey belly. Simple pixel-line whiskers. No accessories. Simple black vertical bar eyes.",
+      "design_reference": "Bootoshi-style modern pixel art",
       "relationships": {
         "reows": "Torn between friendship and financial sense when Reows pitches ideas.",
         "meows": "Mutual respect. Both take themselves seriously.",
@@ -42,7 +43,8 @@
         "pens": "Pens occasionally drops surprisingly good business advice.",
         "quacks": "Gets nervous when Quacks investigates his 'business dealings.'"
       },
-      "sprite_states": ["idle", "talking", "calculating", "excited", "reaction_nervous", "walking"],
+      "sprite_states": ["idle", "talking"],
+      "default_facing": "left",
       "text_blip_sound": "text_blip_mid.wav",
       "name_color": "#78909C"
     },
@@ -53,11 +55,11 @@
       "archetype": "The Diplomat",
       "personality_traits": ["refined", "formal", "worldly", "connected", "polished", "good-hearted underneath"],
       "comedy_function": "Overly formal in casual situations. Treats simple interactions like diplomatic negotiations.",
-      "signature_prop": "monocle or top hat (TBD based on pixel art testing)",
+      "signature_prop": "red-violet bowtie",
       "catchphrases": ["On behalf of the United Meows of Ameowica...", "I shall consult with my embassy.", "This is a matter of international importance.", "Per the accords...", "How... provincial."],
       "dialogue_style": "Formal, diplomatic language. Long sentences with unnecessary gravitas.",
-      "visual_notes": "Upright cat, sleek posture. Monocle or top hat for diplomacy flair.",
-      "design_reference": "Refined aristocratic housecat",
+      "visual_notes": "Slim sleek cat, Huckleberry Hound blue fur with lighter blue belly, red-violet bowtie. Top Cat proportions — tall, lean, upright. Simple black vertical bar eyes.",
+      "design_reference": "Bootoshi-style modern pixel art, Huckleberry Hound color, Top Cat proportions",
       "relationships": {
         "chubs": "Professional mutual respect.",
         "reows": "Finds him fascinating and horrifying in equal measure.",
@@ -65,7 +67,8 @@
         "quacks": "Quacks suspects him of being a spy. Meows is oblivious.",
         "pens": "Mildly entertained by Pens' brevity."
       },
-      "sprite_states": ["idle", "talking", "refined_pose", "reaction_appalled", "reaction_pleased", "walking"],
+      "sprite_states": ["idle", "talking"],
+      "default_facing": "left",
       "text_blip_sound": "text_blip_high.wav",
       "name_color": "#CE93D8"
     },
@@ -79,8 +82,8 @@
       "signature_prop": "apron (diner owner)",
       "catchphrases": ["Can I just get someone to order something?", "That's not on the menu.", "I'm not cleaning that up.", "Welcome to the diner, what can I—", "*sighs*"],
       "dialogue_style": "Normal, relatable speech. Exasperated reactions. The only character who talks like a regular person.",
-      "visual_notes": "Medium-round pig body with apron. Often holding a plate or towel.",
-      "design_reference": "Friendly cartoon pig with diner worker accessories",
+      "visual_notes": "Tiny compact pink pig, Piglet proportions — small and lean, not round. Classic pink skin with lighter pink belly. Plain white apron. Simple black vertical bar eyes.",
+      "design_reference": "Bootoshi-style modern pixel art, Piglet proportions",
       "role_in_world": "Owns and operates the Main Street diner — the central gathering place.",
       "relationships": {
         "everyone": "Everyone comes to Oinks. He's the social hub.",
@@ -90,7 +93,8 @@
         "chubs": "Best customer. Worst backseat manager.",
         "meows": "Takes way too long to order."
       },
-      "sprite_states": ["idle", "talking", "serving", "wiping_counter", "reaction_exasperated", "walking"],
+      "sprite_states": ["idle", "talking"],
+      "default_facing": "left",
       "text_blip_sound": "text_blip_warm.wav",
       "name_color": "#F48FB1"
     },
@@ -101,11 +105,11 @@
       "archetype": "The Investigator",
       "personality_traits": ["industrious", "curious", "paranoid", "pattern-seeking", "determined", "conspiracy-minded"],
       "comedy_function": "Conspiracy theorist plot engine. Investigates mundane things. Connects dots that aren't there.",
-      "signature_prop": "magnifying glass or small notebook",
+      "signature_prop": "none",
       "catchphrases": ["That's EXACTLY what they want you to think.", "Something doesn't add up here.", "I've been tracking this for weeks.", "Wake up, people.", "Follow the breadcrumbs."],
       "dialogue_style": "Intense, conspiratorial whisper energy. Uses 'they' and 'them' without referencing anyone specific.",
-      "visual_notes": "Small, compact call duck. Smallest silhouette. Magnifying glass or notebook.",
-      "design_reference": "Mini detective duck",
+      "visual_notes": "Round chubby duck, rosy cheeks, Bootoshi reference image style. Simple black vertical bar eyes. No accessories.",
+      "design_reference": "Bootoshi duck — exact style match",
       "relationships": {
         "oinks": "Primary interrogation target.",
         "reows": "Wild ideas accidentally validate theories. Dangerous pairing.",
@@ -113,7 +117,8 @@
         "pens": "Tries to recruit Pens for investigations. Pens declines.",
         "chubs": "Follows the money."
       },
-      "sprite_states": ["idle", "talking", "investigating", "suspicious", "eureka", "walking"],
+      "sprite_states": ["idle", "talking"],
+      "default_facing": "left",
       "text_blip_sound": "text_blip_quick.wav",
       "name_color": "#FFD54F"
     },
@@ -124,11 +129,11 @@
       "archetype": "The Wild Card",
       "personality_traits": ["free-spirited", "eccentric", "confident", "chaotic", "endlessly enthusiastic", "physical comedy magnet"],
       "comedy_function": "Chaos agent. Bursts into scenes with wild energy and half-baked ideas delivered with total confidence.",
-      "signature_prop": "white collar and blue pork pie hat with white center (Yogi Bear style)",
+      "signature_prop": "Dodger blue baseball cap with interlocking 0x logo",
       "catchphrases": ["GUYS. I just had the GREATEST idea.", "Trust me on this one.", "What could possibly go wrong?", "You're gonna love this.", "I know a guy."],
       "dialogue_style": "High energy, exclamation points, ALL CAPS for emphasis. Long enthusiastic rants.",
-      "visual_notes": "Large bear. White collar around neck, blue pork pie hat with white center. Brown fur with lighter brown patches on belly, face, and inner ears. Biggest silhouette. Always in motion.",
-      "design_reference": "Yogi Bear (Hanna-Barbera) visual. Top Cat meets Kramer personality.",
+      "visual_notes": "Tall brown bear, Yogi Bear proportions — big but not fat, broad shoulders. Dark brown fur, lighter brown belly. Dodger blue baseball cap with interlocking 0x logo. Simple black vertical bar eyes. Tallest character.",
+      "design_reference": "Bootoshi-style modern pixel art, Yogi Bear proportions, Kramer energy",
       "name_note": "'Reow' is a cat sound. Reows is a bear. This is INTENTIONAL. Do not change.",
       "relationships": {
         "pens": "The classic odd couple. Chaos meets calm. Highest comedy potential.",
@@ -137,7 +142,8 @@
         "oinks": "Tries to 'help' at the diner. Makes everything worse.",
         "meows": "Fascinates and horrifies the diplomat in equal measure."
       },
-      "sprite_states": ["idle", "talking", "burst_entrance", "excited", "scheming", "walking"],
+      "sprite_states": ["idle", "talking"],
+      "default_facing": "right",
       "text_blip_sound": "text_blip_bold.wav",
       "name_color": "#A1887F"
     }

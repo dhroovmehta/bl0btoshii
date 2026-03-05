@@ -30,7 +30,7 @@ class TestCheckAssetAvailability:
     def test_all_assets_present(self, sample_script):
         """When all referenced assets exist, should return (True, [])."""
         all_present, missing = check_asset_availability(sample_script)
-        # diner_interior.png and pens/oinks sprites exist from previous phase
+        # diner.png and pens/oinks sprites exist from previous phase
         assert all_present is True
         assert missing == []
 
@@ -87,7 +87,7 @@ class TestCheckAssetAvailability:
         script = {
             "scenes": [
                 {
-                    "background": "diner_interior",
+                    "background": "diner",
                     "characters_present": ["pens"],
                     "character_positions": {"pens": "stool_1"},
                     "character_animations": {"pens": "idle"},
@@ -327,4 +327,4 @@ class TestLogEpisodeToIndex:
         assert ep["characters_featured"] == ["pens", "oinks"]
         assert ep["situation"] == "everyday_life"
         assert ep["punchline_type"] == "deadpan"
-        assert ep["location"] == "diner_interior"
+        assert ep["location"] == "diner"

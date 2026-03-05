@@ -223,7 +223,7 @@ class TestContinuityMissingFiles:
                         "title": "Test Episode",
                         "characters_featured": ["pens"],
                     },
-                    "scenes": [{"background": "diner_interior"}],
+                    "scenes": [{"background": "diner"}],
                     "continuity_log": {
                         "events_to_track": ["Pens tested something"],
                         "new_gags": [],

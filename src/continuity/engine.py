@@ -49,7 +49,7 @@ def find_callback_opportunities(characters, situation, location):
     Args:
         characters: List of character IDs (e.g., ["pens", "reows"]).
         situation: Situation type string (e.g., "misunderstanding").
-        location: Location ID (e.g., "diner_interior").
+        location: Location ID (e.g., "diner").
 
     Returns:
         List of callback dicts ranked by relevance, each with:

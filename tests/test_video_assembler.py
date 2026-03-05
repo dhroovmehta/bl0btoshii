@@ -81,7 +81,7 @@ class TestGetCharacterPosition:
     def test_known_position(self):
         """Positions from locations.json are in v1 coords (1080x1920).
         get_character_position returns raw v1 values — scaling happens in scene_builder."""
-        x, y = get_character_position("diner_interior", "stool_1")
+        x, y = get_character_position("diner", "stool_1")
         assert isinstance(x, int)
         assert isinstance(y, int)
         # Raw v1 positions: x in 0-1080, y in 0-1920
@@ -89,7 +89,7 @@ class TestGetCharacterPosition:
         assert 0 <= y <= 1920
 
     def test_unknown_position_returns_default(self):
-        x, y = get_character_position("diner_interior", "nonexistent_spot")
+        x, y = get_character_position("diner", "nonexistent_spot")
         assert isinstance(x, int)
         assert isinstance(y, int)
 
@@ -104,7 +104,7 @@ class TestCompositeCharacter:
 
     def test_returns_frame(self):
         frame = Image.new("RGBA", (FRAME_WIDTH, FRAME_HEIGHT), (26, 26, 58, 255))
-        result = composite_character(frame, "pens", "idle", "diner_interior", "stool_1")
+        result = composite_character(frame, "pens", "idle", "diner", "stool_1")
         assert result.size == (FRAME_WIDTH, FRAME_HEIGHT)
         assert result.mode == "RGBA"
 
@@ -112,9 +112,131 @@ class TestCompositeCharacter:
         """Compositing a character should change the frame pixels."""
         frame = Image.new("RGBA", (FRAME_WIDTH, FRAME_HEIGHT), (26, 26, 58, 255))
         original = frame.copy()
-        result = composite_character(frame, "pens", "idle", "diner_interior", "stool_1")
+        result = composite_character(frame, "pens", "idle", "diner", "stool_1")
         # At least some pixels should differ
         assert result.tobytes() != original.tobytes()
+
+    def test_sprite_flipped_when_facing_left(self):
+        """Passing a 3-tuple with facing='left' should mirror the sprite."""
+        frame_r = Image.new("RGBA", (FRAME_WIDTH, FRAME_HEIGHT), (26, 26, 58, 255))
+        frame_l = Image.new("RGBA", (FRAME_WIDTH, FRAME_HEIGHT), (26, 26, 58, 255))
+
+        # Same position, different facing
+        composite_character(frame_r, "pens", "idle", "diner", (500, 800, "right"))
+        composite_character(frame_l, "pens", "idle", "diner", (500, 800, "left"))
+
+        # Frames should differ because one sprite is mirrored
+        assert frame_r.tobytes() != frame_l.tobytes()
+
+    def test_2_tuple_position_still_works(self):
+        """Backward compat: 2-tuples should work with default right facing."""
+        frame = Image.new("RGBA", (FRAME_WIDTH, FRAME_HEIGHT), (26, 26, 58, 255))
+        result = composite_character(frame, "pens", "idle", "diner", (500, 800))
+        assert result.size == (FRAME_WIDTH, FRAME_HEIGHT)
+
+    def test_default_facing_respected_for_mirror(self):
+        """composite_character must use the character's default_facing to decide
+        whether to mirror. A character whose default is 'left' should NOT be
+        mirrored when position facing is also 'left', but SHOULD be mirrored
+        when position facing is 'right'."""
+        import numpy as np
+
+        # Oinks default_facing is "left"
+        # Position facing "left" → same as default → no mirror
+        frame_same = Image.new("RGBA", (FRAME_WIDTH, FRAME_HEIGHT), (26, 26, 58, 255))
+        composite_character(frame_same, "oinks", "idle", "diner", (500, 800, "left"))
+
+        # Position facing "right" → opposite of default → mirror
+        frame_flip = Image.new("RGBA", (FRAME_WIDTH, FRAME_HEIGHT), (26, 26, 58, 255))
+        composite_character(frame_flip, "oinks", "idle", "diner", (500, 800, "right"))
+
+        # These must produce different frames (one is mirrored)
+        assert frame_same.tobytes() != frame_flip.tobytes(), (
+            "Oinks at facing='left' vs facing='right' should produce different frames"
+        )
+
+        # Now verify the "same as default" case matches the raw sprite orientation
+        # Load the raw sprite — it faces left by default
+        from src.video_assembler.sprite_manager import load_sprite
+        raw_sprite = load_sprite("oinks", "idle")
+
+        # Extract the sprite region from the "same" frame and verify it's NOT mirrored
+        # by checking that the raw sprite's left half has more opaque pixels
+        arr = np.array(raw_sprite)
+        mid = raw_sprite.width // 2
+        left_mass = np.sum(arr[:, :mid, 3] > 20)
+        right_mass = np.sum(arr[:, mid:, 3] > 20)
+        # Oinks leans left — left half has more pixel mass
+        assert left_mass > right_mass, (
+            "Raw oinks sprite should have more pixel mass on left side"
+        )
+
+    def test_pens_not_mirrored_when_position_says_right(self):
+        """Pens default_facing='right'. Position facing='right' → no mirror.
+        Position facing='left' → mirror."""
+        frame_nomirror = Image.new("RGBA", (FRAME_WIDTH, FRAME_HEIGHT), (26, 26, 58, 255))
+        composite_character(frame_nomirror, "pens", "idle", "diner", (500, 800, "right"))
+
+        frame_mirror = Image.new("RGBA", (FRAME_WIDTH, FRAME_HEIGHT), (26, 26, 58, 255))
+        composite_character(frame_mirror, "pens", "idle", "diner", (500, 800, "left"))
+
+        assert frame_nomirror.tobytes() != frame_mirror.tobytes()
+
+    def test_oinks_facing_left_preserves_original_orientation(self):
+        """Oinks default_facing='left'. When position says facing='left',
+        the sprite should NOT be mirrored — it should preserve the raw
+        sprite's original left-leaning orientation.
+
+        This test catches the bug where the code mirrors on facing=='left'
+        regardless of the character's default direction."""
+        import numpy as np
+
+        # Composite oinks at facing="left" (should match default → no mirror)
+        frame = Image.new("RGBA", (FRAME_WIDTH, FRAME_HEIGHT), (0, 0, 0, 0))
+        composite_character(frame, "oinks", "idle", "diner", (500, 800, "left"))
+
+        # Extract the sprite region from the composited frame
+        arr = np.array(frame)
+        alpha = arr[:, :, 3]
+        # Find the bounding box of non-transparent pixels
+        rows = np.any(alpha > 20, axis=1)
+        cols = np.any(alpha > 20, axis=0)
+        if rows.any() and cols.any():
+            rmin, rmax = np.where(rows)[0][[0, -1]]
+            cmin, cmax = np.where(cols)[0][[0, -1]]
+            sprite_region = alpha[rmin:rmax+1, cmin:cmax+1]
+            mid = sprite_region.shape[1] // 2
+            left_mass = np.sum(sprite_region[:, :mid] > 20)
+            right_mass = np.sum(sprite_region[:, mid:] > 20)
+
+            # Oinks' raw sprite leans LEFT (more pixel mass on left).
+            # If facing="left" and default_facing="left", sprite is NOT mirrored,
+            # so left_mass should still be > right_mass.
+            assert left_mass > right_mass, (
+                f"Oinks at facing='left' should NOT be mirrored (default is 'left'). "
+                f"Expected left_mass > right_mass, got {left_mass} vs {right_mass}"
+            )
+
+    def test_all_characters_mirror_produces_visible_difference(self):
+        """Every character must produce a visually different result when
+        mirrored vs not mirrored (proves sprites are asymmetric)."""
+        import numpy as np
+
+        characters = ["pens", "chubs", "meows", "oinks", "quacks", "reows"]
+        for char_id in characters:
+            frame_r = Image.new("RGBA", (FRAME_WIDTH, FRAME_HEIGHT), (26, 26, 58, 255))
+            frame_l = Image.new("RGBA", (FRAME_WIDTH, FRAME_HEIGHT), (26, 26, 58, 255))
+
+            composite_character(frame_r, char_id, "idle", "diner", (500, 800, "right"))
+            composite_character(frame_l, char_id, "idle", "diner", (500, 800, "left"))
+
+            diff = np.sum(np.abs(
+                np.array(frame_r).astype(int) - np.array(frame_l).astype(int)
+            ) > 30)
+            assert diff > 1000, (
+                f"{char_id}: mirrored vs non-mirrored should differ by > 1000 pixels, "
+                f"got {diff} — sprite may be too symmetric or mirror not working"
+            )
 
 
 # ---------------------------------------------------------------------------
@@ -125,7 +247,7 @@ class TestLoadBackground:
     """Test background loading."""
 
     def test_loads_existing_background(self):
-        bg = load_background("diner_interior")
+        bg = load_background("diner")
         assert bg.size == (FRAME_WIDTH, FRAME_HEIGHT)
 
     def test_returns_placeholder_for_missing(self):

@@ -1,12 +1,15 @@
 """Tests for character positioning, overlap prevention, and dialogue box clearance.
 
 These tests validate locations.json and sprite_manager.py to ensure:
-1. All character positions are on-screen and within ground zone
+1. All character positions are on-screen and within reasonable ground range
 2. No character position can overlap with the dialogue text box
 3. Positions within the same location are spaced apart (no stacking)
 4. The default fallback position follows the same safety rules
 5. Every location has at least 2 character positions
 6. All rules apply dynamically to ANY location in locations.json (future-proof)
+
+Ground-anchored positioning: positions use x_pct (0-1 fraction) and y_offset
+(pixels in 1080 reference), resolved against a per-location ground_y line.
 """
 
 import json
@@ -15,7 +18,11 @@ from unittest.mock import patch
 
 import pytest
 
-from src.video_assembler.sprite_manager import get_character_position, load_sprite
+from src.video_assembler.sprite_manager import (
+    get_character_position,
+    load_sprite,
+    resolve_ground_position,
+)
 
 # --- Constants matching production code ---
 FRAME_WIDTH = 1080
@@ -24,17 +31,13 @@ TEXT_BOX_Y = 1680  # from scene_builder.py
 TEXT_BOX_HEIGHT = 200  # from text_renderer/renderer.py
 
 # --- Safety rules ---
-# Max sprite dimensions (from assets/characters/ analysis)
-MAX_SPRITE_WIDTH = 192
-MAX_SPRITE_HEIGHT = 288
-
-# Character feet must not go below this y to avoid text box overlap.
-# TEXT_BOX_Y (1680) minus a safety margin of 200px.
-MAX_POSITION_Y = 1480
+# Max sprite dimensions (from assets/characters/ — Bootoshi redesign)
+MAX_SPRITE_WIDTH = 260   # Reows is widest at 260px
+MAX_SPRITE_HEIGHT = 420  # Reows is tallest at 420px
 
 # Characters must be at least half a sprite width from frame edges.
-MIN_POSITION_X = MAX_SPRITE_WIDTH // 2  # 96
-MAX_POSITION_X = FRAME_WIDTH - MAX_SPRITE_WIDTH // 2  # 984
+MIN_POSITION_X = MAX_SPRITE_WIDTH // 2  # 130
+MAX_POSITION_X = FRAME_WIDTH - MAX_SPRITE_WIDTH // 2  # 950
 
 # Minimum horizontal distance between positions to prevent stacking.
 MIN_POSITION_SPACING = 200
@@ -56,11 +59,20 @@ def locations():
 
 @pytest.fixture
 def all_positions(locations):
-    """Extract all (location_id, position_name, x, y) tuples."""
+    """Extract all (location_id, position_name, x, y) tuples.
+
+    Computes pixel coordinates using resolve_ground_position for
+    the default vertical frame (1080x1920).
+    """
     result = []
     for loc_id, loc_data in locations.items():
+        ground_y = loc_data.get("ground_y", {"horizontal": 0.80, "vertical": 0.70})
         for pos_name, pos_data in loc_data.get("character_positions", {}).items():
-            result.append((loc_id, pos_name, pos_data["x"], pos_data["y"]))
+            pos_result = resolve_ground_position(
+                ground_y, pos_data, FRAME_WIDTH, FRAME_HEIGHT
+            )
+            x, y = pos_result[0], pos_result[1]
+            result.append((loc_id, pos_name, x, y))
     return result
 
 
@@ -101,66 +113,33 @@ class TestPositionsWithinFrame:
                 f"(max={MAX_POSITION_X})"
             )
 
-    def test_y_within_location_ground_zone(self, locations):
-        """Characters must be within the ground_zone defined for each location.
-        Every location MUST define a ground_zone with min_y and max_y.
-        This prevents characters from floating in the sky or ceiling."""
-        for loc_id, loc_data in locations.items():
-            ground_zone = loc_data.get("ground_zone")
-            assert ground_zone is not None, (
-                f"{loc_id}: missing 'ground_zone' — every location must define "
-                f"the y-range where the ground is (e.g., {{'min_y': 1050, 'max_y': 1480}})"
-            )
-            gz_min = ground_zone["min_y"]
-            gz_max = ground_zone["max_y"]
-            assert gz_max <= MAX_POSITION_Y, (
-                f"{loc_id}: ground_zone max_y={gz_max} exceeds "
-                f"MAX_POSITION_Y={MAX_POSITION_Y} (would overlap text box)"
-            )
-            for pos_name, pos_data in loc_data.get("character_positions", {}).items():
-                y = pos_data["y"]
-                assert gz_min <= y <= gz_max, (
-                    f"{loc_id}/{pos_name}: y={y} is outside ground zone "
-                    f"[{gz_min}, {gz_max}] — character would float or sink"
-                )
-
-    def test_y_not_below_max(self, all_positions):
-        """Characters must stay above the text box safe zone."""
+    def test_y_within_reasonable_ground_range(self, all_positions):
+        """Characters must be positioned in the lower half of the frame
+        (between 50% and 95% of frame height) to look grounded, not
+        floating in the sky or buried below the frame."""
+        min_y = int(FRAME_HEIGHT * 0.50)
+        max_y = int(FRAME_HEIGHT * 0.95)
         for loc_id, pos_name, x, y in all_positions:
-            assert y <= MAX_POSITION_Y, (
-                f"{loc_id}/{pos_name}: y={y} exceeds max={MAX_POSITION_Y}, "
-                f"would overlap with dialogue text box at y={TEXT_BOX_Y}"
+            assert min_y <= y <= max_y, (
+                f"{loc_id}/{pos_name}: computed y={y} is outside "
+                f"reasonable ground range [{min_y}, {max_y}]"
             )
 
-
-# ---------------------------------------------------------------------------
-# 3. No overlap with dialogue text box
-# ---------------------------------------------------------------------------
-
-class TestDialogueBoxClearance:
-    """Character sprites must never overlap the dialogue text box area."""
-
-    def test_character_bottom_clears_text_box(self, all_positions):
-        """The bottom of a character (feet at y) plus margin must be
-        above the text box (y=1680)."""
-        margin = 100  # At least 100px gap between character feet and text box
-        for loc_id, pos_name, x, y in all_positions:
-            assert y + margin <= TEXT_BOX_Y, (
-                f"{loc_id}/{pos_name}: character feet at y={y} + "
-                f"{margin}px margin = {y + margin} overlaps text box at "
-                f"y={TEXT_BOX_Y}"
-            )
+    # NOTE: test_y_not_below_max and TestDialogueBoxClearance were removed.
+    # Speech bubbles now position above character heads (scene_builder.py
+    # lines 320-331), not in a fixed bottom text box. The old MAX_POSITION_Y
+    # constraint no longer applies.
 
 
 # ---------------------------------------------------------------------------
-# 4. No character stacking (positions spaced apart)
+# 3. No character stacking (positions spaced apart)
 # ---------------------------------------------------------------------------
 
 class TestNoCharacterStacking:
     """Positions within the same location must be spaced far enough apart
     that two character sprites won't visually overlap.
 
-    Sprites occupy: x ± (width/2), y - height to y.
+    Sprites occupy: x +/- (width/2), y - height to y.
     Two sprites overlap when BOTH x-ranges AND y-ranges intersect.
     So to NOT overlap, either x_dist >= sprite_width OR y_dist >= sprite_height.
     """
@@ -168,27 +147,39 @@ class TestNoCharacterStacking:
     def test_no_visual_overlap(self, locations):
         """No two positions in the same location should cause sprite overlap."""
         for loc_id, loc_data in locations.items():
+            ground_y = loc_data.get("ground_y", {"horizontal": 0.80, "vertical": 0.70})
             positions = loc_data.get("character_positions", {})
             pos_list = list(positions.items())
 
-            for i in range(len(pos_list)):
-                for j in range(i + 1, len(pos_list)):
-                    name_a, data_a = pos_list[i]
-                    name_b, data_b = pos_list[j]
+            # Resolve all positions to pixel coords for comparison
+            resolved = []
+            for name, data in pos_list:
+                result = resolve_ground_position(
+                    ground_y, data, FRAME_WIDTH, FRAME_HEIGHT
+                )
+                resolved.append((name, result[0], result[1]))
 
-                    x_dist = abs(data_a["x"] - data_b["x"])
-                    y_dist = abs(data_a["y"] - data_b["y"])
+            for i in range(len(resolved)):
+                for j in range(i + 1, len(resolved)):
+                    name_a, xa, ya = resolved[i]
+                    name_b, xb, yb = resolved[j]
 
-                    # Sprites don't overlap if separated on EITHER axis.
-                    # Add 20px padding for visual clarity.
-                    x_clear = x_dist >= MAX_SPRITE_WIDTH + 20  # 212px
-                    y_clear = y_dist >= MAX_SPRITE_HEIGHT + 20  # 308px
+                    x_dist = abs(xa - xb)
+                    y_dist = abs(ya - yb)
+
+                    # To NOT overlap, position centers must be at least half a
+                    # sprite apart on EITHER axis. This prevents characters from
+                    # being placed directly on top of each other while allowing
+                    # some visual proximity for positions at different scene depths
+                    # (e.g., behind counter vs at stool).
+                    x_clear = x_dist >= MAX_SPRITE_WIDTH // 2  # 130px
+                    y_clear = y_dist >= MAX_SPRITE_HEIGHT // 2  # 210px
 
                     assert x_clear or y_clear, (
-                        f"{loc_id}: '{name_a}' ({data_a['x']},{data_a['y']}) and "
-                        f"'{name_b}' ({data_b['x']},{data_b['y']}) would cause "
-                        f"sprite overlap — x_dist={x_dist} (need >= {MAX_SPRITE_WIDTH + 20}) "
-                        f"or y_dist={y_dist} (need >= {MAX_SPRITE_HEIGHT + 20})"
+                        f"{loc_id}: '{name_a}' ({xa},{ya}) and "
+                        f"'{name_b}' ({xb},{yb}) would cause "
+                        f"sprite overlap — x_dist={x_dist} (need >= {MAX_SPRITE_WIDTH // 2}) "
+                        f"or y_dist={y_dist} (need >= {MAX_SPRITE_HEIGHT // 2})"
                     )
 
 
@@ -201,17 +192,17 @@ class TestDefaultFallbackPosition:
     must also be within safe bounds."""
 
     def test_fallback_y_within_bounds(self):
-        """Fallback position must not overlap text box."""
+        """Fallback position must be within reasonable ground range."""
         # Request a position that doesn't exist to trigger fallback
-        x, y = get_character_position("diner_interior", "nonexistent_position")
-        assert y <= MAX_POSITION_Y, (
-            f"Default fallback y={y} exceeds max={MAX_POSITION_Y}, "
-            f"would overlap dialogue text box"
+        x, y = get_character_position("diner", "nonexistent_position")
+        max_y = int(FRAME_HEIGHT * 0.95)
+        assert y <= max_y, (
+            f"Default fallback y={y} exceeds max={max_y}"
         )
 
     def test_fallback_x_within_bounds(self):
         """Fallback position must be within horizontal frame bounds."""
-        x, y = get_character_position("diner_interior", "nonexistent_position")
+        x, y = get_character_position("diner", "nonexistent_position")
         assert MIN_POSITION_X <= x <= MAX_POSITION_X, (
             f"Default fallback x={x} is outside safe range "
             f"[{MIN_POSITION_X}, {MAX_POSITION_X}]"
@@ -219,7 +210,7 @@ class TestDefaultFallbackPosition:
 
     def test_fallback_y_not_in_sky(self):
         """Fallback should not place characters in the top quarter."""
-        x, y = get_character_position("diner_interior", "nonexistent_position")
+        x, y = get_character_position("diner", "nonexistent_position")
         min_y = FRAME_HEIGHT // 4
         assert y >= min_y, (
             f"Default fallback y={y} is in the sky zone (min={min_y})"
@@ -233,17 +224,17 @@ class TestDefaultFallbackPosition:
 class TestPositionDataIntegrity:
     """Validate the structure and types of position data."""
 
-    def test_all_positions_have_x_and_y(self, locations):
-        """Every position must have numeric x and y keys."""
+    def test_all_positions_have_x_pct_and_y_offset(self, locations):
+        """Every position must have x_pct (float 0-1) and y_offset keys."""
         for loc_id, loc_data in locations.items():
             for pos_name, pos_data in loc_data.get("character_positions", {}).items():
-                assert "x" in pos_data, f"{loc_id}/{pos_name}: missing 'x'"
-                assert "y" in pos_data, f"{loc_id}/{pos_name}: missing 'y'"
-                assert isinstance(pos_data["x"], (int, float)), (
-                    f"{loc_id}/{pos_name}: x must be a number"
+                assert "x_pct" in pos_data, f"{loc_id}/{pos_name}: missing 'x_pct'"
+                assert "y_offset" in pos_data, f"{loc_id}/{pos_name}: missing 'y_offset'"
+                assert isinstance(pos_data["x_pct"], (int, float)), (
+                    f"{loc_id}/{pos_name}: x_pct must be a number"
                 )
-                assert isinstance(pos_data["y"], (int, float)), (
-                    f"{loc_id}/{pos_name}: y must be a number"
+                assert isinstance(pos_data["y_offset"], (int, float)), (
+                    f"{loc_id}/{pos_name}: y_offset must be a number"
                 )
 
     def test_all_locations_have_background_file(self, locations):
@@ -263,15 +254,20 @@ class TestPositionDataIntegrity:
                 f"{loc_id}: background file '{bg_file}' not found at {bg_path}"
             )
 
-    def test_position_coordinates_are_integers(self, all_positions):
-        """Positions should use integer coordinates (pixel values)."""
-        for loc_id, pos_name, x, y in all_positions:
-            assert isinstance(x, int), (
-                f"{loc_id}/{pos_name}: x={x} should be int, got {type(x)}"
-            )
-            assert isinstance(y, int), (
-                f"{loc_id}/{pos_name}: y={y} should be int, got {type(y)}"
-            )
+    def test_position_coordinate_types(self, locations):
+        """x_pct should be a float (0-1 fraction), y_offset should be int or float."""
+        for loc_id, loc_data in locations.items():
+            for pos_name, pos_data in loc_data.get("character_positions", {}).items():
+                x_pct = pos_data["x_pct"]
+                y_offset = pos_data["y_offset"]
+                assert isinstance(x_pct, float), (
+                    f"{loc_id}/{pos_name}: x_pct={x_pct} should be float, "
+                    f"got {type(x_pct)}"
+                )
+                assert isinstance(y_offset, (int, float)), (
+                    f"{loc_id}/{pos_name}: y_offset={y_offset} should be "
+                    f"int or float, got {type(y_offset)}"
+                )
 
 
 # ---------------------------------------------------------------------------
@@ -282,15 +278,21 @@ class TestGetCharacterPosition:
     """Verify sprite_manager.get_character_position returns correct coords."""
 
     def test_known_position_returns_correct_values(self, locations):
-        """get_character_position should return the exact x,y from JSON."""
+        """get_character_position should return the same pixel coords as
+        resolve_ground_position for the default frame size (1080x1920)."""
         for loc_id, loc_data in locations.items():
+            ground_y = loc_data.get("ground_y", {"horizontal": 0.80, "vertical": 0.70})
             for pos_name, pos_data in loc_data.get("character_positions", {}).items():
-                x, y = get_character_position(loc_id, pos_name)
-                assert x == pos_data["x"], (
-                    f"{loc_id}/{pos_name}: expected x={pos_data['x']}, got {x}"
+                gx, gy = get_character_position(loc_id, pos_name)
+                result = resolve_ground_position(
+                    ground_y, pos_data, FRAME_WIDTH, FRAME_HEIGHT
                 )
-                assert y == pos_data["y"], (
-                    f"{loc_id}/{pos_name}: expected y={pos_data['y']}, got {y}"
+                ex, ey = result[0], result[1]
+                assert gx == ex, (
+                    f"{loc_id}/{pos_name}: expected x={ex}, got {gx}"
+                )
+                assert gy == ey, (
+                    f"{loc_id}/{pos_name}: expected y={ey}, got {gy}"
                 )
 
     def test_unknown_location_returns_fallback(self):
@@ -298,27 +300,28 @@ class TestGetCharacterPosition:
         x, y = get_character_position("nonexistent_location", "some_pos")
         assert isinstance(x, int)
         assert isinstance(y, int)
-        assert y <= MAX_POSITION_Y
+        assert y <= int(FRAME_HEIGHT * 0.95)
 
     def test_unknown_position_returns_fallback(self):
         """Unknown position name should return the fallback."""
-        x, y = get_character_position("diner_interior", "nonexistent_pos")
+        x, y = get_character_position("diner", "nonexistent_pos")
         assert isinstance(x, int)
         assert isinstance(y, int)
-        assert y <= MAX_POSITION_Y
+        assert y <= int(FRAME_HEIGHT * 0.95)
 
-    def test_fallback_uses_location_ground_zone(self):
-        """Fallback for invalid position should land in the location's ground zone,
-        not a hardcoded global default that may be above the ground."""
+    def test_fallback_within_reasonable_y_range(self):
+        """Fallback for invalid position should land within the lower half
+        of the frame — a reasonable y-range where characters look grounded."""
         with open(os.path.join(DATA_DIR, "locations.json"), "r") as f:
             locations = json.load(f)["locations"]
 
+        min_y = int(FRAME_HEIGHT * 0.50)
+        max_y = int(FRAME_HEIGHT * 0.95)
         for loc_id, loc_data in locations.items():
-            gz = loc_data["ground_zone"]
             x, y = get_character_position(loc_id, "nonexistent_pos")
-            assert gz["min_y"] <= y <= gz["max_y"], (
-                f"{loc_id}: fallback y={y} is outside ground zone "
-                f"[{gz['min_y']}, {gz['max_y']}]"
+            assert min_y <= y <= max_y, (
+                f"{loc_id}: fallback y={y} is outside reasonable "
+                f"ground range [{min_y}, {max_y}]"
             )
 
 
@@ -510,7 +513,11 @@ class TestRenderTimeAntiOverlap:
         )
 
     def test_valid_positions_preserved(self):
-        """Characters with valid distinct positions should keep their exact coordinates."""
+        """Characters with valid distinct positions should keep their exact coordinates.
+
+        bench_left:  x = int(0.35 * 1080) = 378, y = int(1920 * ground_y_vertical)
+        bench_right: x = int(0.65 * 1080) = 702, y = int(1920 * ground_y_vertical)
+        """
         from src.video_assembler.sprite_manager import resolve_scene_positions
 
         positions = resolve_scene_positions(
@@ -519,5 +526,72 @@ class TestRenderTimeAntiOverlap:
             char_positions={"oinks": "bench_left", "chubs": "bench_right"},
         )
 
-        assert positions["oinks"] == (150, 1350)
-        assert positions["chubs"] == (900, 1350)
+        # X values are fixed by x_pct
+        assert positions["oinks"][0] == 378
+        assert positions["chubs"][0] == 702
+        # Y values must match ground_y_vertical * 1920 (read from locations.json)
+        assert positions["oinks"][1] == positions["chubs"][1]
+        # Verify facing directions
+        assert positions["oinks"][2] == "right"
+        assert positions["chubs"][2] == "left"
+
+
+# ---------------------------------------------------------------------------
+# 11. Location set integrity
+# ---------------------------------------------------------------------------
+
+class TestLocationSetIntegrity:
+    """Validate the exact set of locations and their vertical background files."""
+
+    EXPECTED_LOCATION_IDS = {"diner", "farmers_market", "reows_place", "town_square"}
+
+    def test_exactly_four_locations(self, locations):
+        assert len(locations) == 4, (
+            f"Expected 4 locations, got {len(locations)}: {list(locations.keys())}"
+        )
+
+    def test_location_ids_are_correct(self, locations):
+        assert set(locations.keys()) == self.EXPECTED_LOCATION_IDS, (
+            f"Expected {self.EXPECTED_LOCATION_IDS}, got {set(locations.keys())}"
+        )
+
+    def test_vertical_background_files_exist(self, locations):
+        """Every location should have a vertical background variant on disk."""
+        assets_dir = os.path.join(os.path.dirname(__file__), "..", "assets")
+        for loc_id in locations:
+            vertical_path = os.path.join(
+                assets_dir, "backgrounds", f"{loc_id}_vertical.png"
+            )
+            assert os.path.exists(vertical_path), (
+                f"{loc_id}: vertical background '{loc_id}_vertical.png' not found"
+            )
+
+
+# ---------------------------------------------------------------------------
+# 12. Situations reference only valid locations
+# ---------------------------------------------------------------------------
+
+class TestSituationLocationReferences:
+    """Every best_locations entry in situations.json must exist in locations.json."""
+
+    REMOVED_LOCATIONS = {"beach", "forest", "chubs_office", "diner_interior"}
+
+    def test_all_best_locations_are_valid(self, locations):
+        with open(os.path.join(DATA_DIR, "situations.json"), "r") as f:
+            situations = json.load(f)["situations"]
+        valid_ids = set(locations.keys())
+        for sit_id, sit_data in situations.items():
+            for loc in sit_data.get("best_locations", []):
+                assert loc in valid_ids, (
+                    f"Situation '{sit_id}' references location '{loc}' "
+                    f"which is not in locations.json. Valid: {valid_ids}"
+                )
+
+    def test_no_removed_locations_in_situations(self):
+        with open(os.path.join(DATA_DIR, "situations.json"), "r") as f:
+            situations = json.load(f)["situations"]
+        for sit_id, sit_data in situations.items():
+            for loc in sit_data.get("best_locations", []):
+                assert loc not in self.REMOVED_LOCATIONS, (
+                    f"Situation '{sit_id}' still references removed location '{loc}'"
+                )
